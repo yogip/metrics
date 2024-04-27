@@ -1,3 +1,9 @@
 package main
 
-func main() {}
+import (
+	"github.com/yogip/metrics/internal/server"
+)
+
+func main() {
+	server.Run()
+}
