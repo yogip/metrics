@@ -25,11 +25,11 @@ func (g *Gauge) ValidateType(t MetricType) bool {
 }
 
 // Set and convert value from sting, return error for wrong type
-func (c *Gauge) Set(value string) error {
+func (g *Gauge) Set(value string) error {
 	if v, err := strconv.ParseFloat(value, 64); err != nil {
 		return fmt.Errorf("could not set value (%s) to Gauge: %s", value, err)
 	} else {
-		c.Value = v
+		g.Value = v
 	}
 	return nil
 }
