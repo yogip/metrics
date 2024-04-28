@@ -1,14 +1,17 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
 
-	"github.com/yogip/metrics/internal/shared"
+	"github.com/yogip/metrics/internal/repo"
 )
 
-func mainPage(res http.ResponseWriter, req *http.Request) {
+var storage *repo.MemStorage
+
+func updateHandler(res http.ResponseWriter, req *http.Request) {
 	log.Printf("handler method: [%s] %s\n", req.Method, req.URL.Path)
 	if req.Method != http.MethodPost {
 		http.Error(res, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -16,48 +19,98 @@ func mainPage(res http.ResponseWriter, req *http.Request) {
 
 	// http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 	pathParts := strings.Split(req.URL.Path, "/")
-	if len(pathParts) < 5 || pathParts[1] != "update" {
+	if len(pathParts) < 5 {
 		http.NotFound(res, req)
 		return
 	}
 
-	metricType := shared.MetricType(pathParts[2])
+	metricType := repo.MetricType(pathParts[2])
 	metricName := pathParts[3]
 	metricValue := pathParts[4]
+	log.Printf("Got update input %s:%s set %s\n", metricType, metricName, metricValue)
 
-	if metricType != shared.GaugeType && metricType != shared.CounterType {
+	if metricType != repo.GaugeType && metricType != repo.CounterType {
+		http.Error(res, "Incorrect metric type", http.StatusBadRequest)
+		return
+	}
+
+	metric, ok := storage.Get(metricType, metricName)
+	if !ok {
+		// todo I want to be refactored
+		if metricType == repo.GaugeType {
+			metric = &repo.Gauge{Name: metricName, Value: 0}
+		} else {
+			metric = &repo.Counter{Name: metricName, Value: 0}
+		}
+	}
+	if !metric.ValidateType(metricType) {
+		http.Error(res, "Incorrect value", http.StatusBadRequest)
+		return
+	}
+
+	if err := metric.Set(metricValue); err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+	storage.Set(metricType, metricName, metric)
+}
+
+func getHandler(res http.ResponseWriter, req *http.Request) {
+	log.Printf("handler method: [%s] %s\n", req.Method, req.URL.Path)
+	if req.Method != http.MethodGet {
+		http.Error(res, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+	pathParts := strings.Split(req.URL.Path, "/")
+	if len(pathParts) < 4 {
+		http.NotFound(res, req)
+		return
+	}
+
+	metricType := repo.MetricType(pathParts[2])
+	metricName := pathParts[3]
+	log.Printf("Get value for %s:%s\n", metricType, metricName)
+
+	if metricType != repo.GaugeType && metricType != repo.CounterType {
 		http.Error(res, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("handler method: %s\n", req.Method)
-	log.Printf("metric type: %s\n", metricType)
-	log.Printf("metric name: %s\n", metricName)
-	log.Printf("metric value: %s\n", metricValue)
+	metric, ok := storage.Get(metricType, metricName)
+	if !ok {
+		log.Printf("storage: %v \n", storage)
+		http.NotFound(res, req)
+		return
+	}
 
-	// body := fmt.Sprintf("Method: %s\r\n", req.Method)
-	// body += "Header ===============\r\n"
-	// for k, v := range req.Header {
-	// 	body += fmt.Sprintf("%s: %v\r\n", k, v)
-	// }
+	text := `
+	<html>
+		<head>
+			<title>Metric value</title>
+		</head>
+		<body>
+			<h1>Metric %s</h1>
+			<p><b>Value:</b> %v</p>
+	</html>`
 
-	// if err := req.ParseForm(); err != nil {
-	// 	body += fmt.Sprintf("ParseForm error: %v\r\n", err)
-	// 	res.Write([]byte(body))
-	// 	return
-	// }
+	if metricType == repo.GaugeType {
+		gaugeMetric := metric.(*repo.Gauge)
+		text = fmt.Sprintf(text, gaugeMetric.Name, gaugeMetric.Value)
+	} else {
+		counterMetric := metric.(*repo.Counter)
+		text = fmt.Sprintf(text, counterMetric.Name, counterMetric.Value)
+	}
 
-	// body += "Query parameters ===============\r\n"
-	// for k, v := range req.Form {
-	// 	body += fmt.Sprintf("%s: %v\r\n", k, v)
-	// }
-	// res.Write([]byte(body))
+	res.Write([]byte(text))
 }
 
 func Run() {
-	log.Printf("Start server\n")
+	log.Println("Start server")
 	mux := http.NewServeMux()
-	mux.HandleFunc("/update/", mainPage)
+	mux.HandleFunc("/update/", updateHandler)
+	mux.HandleFunc("/value/", getHandler)
+
+	log.Println("Init storage")
+	storage = repo.NewMemStorage()
 
 	err := http.ListenAndServe(`localhost:8080`, mux)
 	if err != nil {

@@ -1,4 +1,4 @@
-package shared
+package repo
 
 type MetricType string
 
