@@ -34,25 +34,10 @@ func updateHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	metric, ok := storage.Get(metricType, metricName)
-	if !ok {
-		// todo I want to be refactored
-		if metricType == repo.GaugeType {
-			metric = &repo.Gauge{Name: metricName, Value: 0}
-		} else {
-			metric = &repo.Counter{Name: metricName, Value: 0}
-		}
-	}
-	if !metric.ValidateType(metricType) {
-		http.Error(res, "Incorrect value", http.StatusBadRequest)
-		return
-	}
-
-	if err := metric.Set(metricValue); err != nil {
+	if err := storage.SetValue(metricType, metricName, metricValue); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	storage.Set(metricType, metricName, metric)
 }
 
 func getHandler(res http.ResponseWriter, req *http.Request) {

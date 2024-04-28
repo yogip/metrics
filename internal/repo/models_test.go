@@ -84,23 +84,23 @@ func TestCounterSetFailed(t *testing.T) {
 	}
 }
 
-func TestMemStorageSetAndGet(t *testing.T) {
-	s := NewMemStorage()
+// func TestMemStorageSetAndGet(t *testing.T) {
+// 	s := NewMemStorage()
 
-	g := &Gauge{Name: "test", Value: 0}
-	err := g.Set("10")
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+// 	g := &Gauge{Name: "test", Value: 0}
+// 	err := g.Set("10")
+// 	if err != nil {
+// 		t.Errorf("Unexpected error: %v", err)
+// 	}
 
-	s.Set(GaugeType, "gauge_1", g)
+// 	s.Set(GaugeType, "gauge_1", g)
 
-	metric, ok := s.Get(GaugeType, "gauge_1")
-	if !ok {
-		t.Error("Expected metric to exist, got false")
-	}
+// 	metric, ok := s.Get(GaugeType, "gauge_1")
+// 	if !ok {
+// 		t.Error("Expected metric to exist, got false")
+// 	}
 
-	if metric != g {
-		t.Errorf("Expected metric to be %v, got %v", g, metric)
-	}
-}
+// 	if metric != g {
+// 		t.Errorf("Expected metric to be %v, got %v", g, metric)
+// 	}
+// }

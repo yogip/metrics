@@ -68,11 +68,44 @@ func NewMemStorage() *MemStorage {
 	return &MemStorage{storage: make(map[string]Metric)}
 }
 
-func (s *MemStorage) Set(metricType MetricType, metricName string, metric Metric) {
-	s.storage[fmt.Sprintf("%s:%s", metricType, metricName)] = metric
+func (s *MemStorage) pkey(metricType MetricType, metricName string) string {
+	return fmt.Sprintf("%s:%s", metricType, metricName)
+}
+
+func (s *MemStorage) SetValue(metricType MetricType, metricName string, value string) error {
+	metric, error := s.GetOrCreate(metricType, metricName)
+	if error != nil {
+		return fmt.Errorf("could not get or create metric: %s", error)
+	}
+
+	if err := metric.Set(value); err != nil {
+		return fmt.Errorf("could not set value: %s", error)
+	}
+
+	// use pointer due to remove extra copy
+	pk := s.pkey(metricType, metricName)
+	s.storage[pk] = metric
+	return nil
 }
 
 func (s *MemStorage) Get(metricType MetricType, metricName string) (Metric, bool) {
-	m, ok := s.storage[fmt.Sprintf("%s:%s", metricType, metricName)]
+	pk := s.pkey(metricType, metricName)
+	m, ok := s.storage[pk]
 	return m, ok
+}
+
+func (s *MemStorage) GetOrCreate(metricType MetricType, metricName string) (Metric, error) {
+	metric, ok := s.Get(metricType, metricName)
+	if ok {
+		return metric, nil
+	}
+
+	switch metricType {
+	case GaugeType:
+		return &Gauge{Name: metricName, Value: 0}, nil
+	case CounterType:
+		return &Counter{Name: metricName, Value: 0}, nil
+	default:
+		return nil, fmt.Errorf("unknown metric type: %s", metricType)
+	}
 }
