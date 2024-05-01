@@ -1,4 +1,4 @@
-package repo
+package storage
 
 import (
 	"testing"
@@ -59,7 +59,7 @@ func TestCounterSet(t *testing.T) {
 		{"10", 20},
 		{"1", 21},
 		{"0", 21},
-		{"11122", 11122},
+		{"11122", 11143},
 	}
 
 	for _, tc := range testCases {
@@ -76,7 +76,26 @@ func TestCounterSet(t *testing.T) {
 
 func TestCounterSetFailed(t *testing.T) {
 	c := &Counter{Name: "test", Value: 0}
-	for _, v := range []string{"invalid", "0.1", "0.00001", "-1"} {
+	// tests := []struct {
+	//     name   string
+	//     value string
+	//     want   int
+	// }{
+	//     {
+	//         name:   "simple test #1",
+	//         value: "invalid",
+	//         want:   3,
+	//     },
+	// }
+	// for _, test := range tests {
+	//     t.Run(test.name, func(t *testing.T) {
+	//         if sum := Sum(test.values...); sum != test.want {
+	//             t.Errorf("Sum() = %d, want %d", sum, test.want)
+	//         }
+	//     })
+	// }
+
+	for _, v := range []string{"invalid", "0.1", "0.00001", "2.000001", "-0.000000003", "-1"} {
 		err := c.Set(v)
 		if err == nil {
 			t.Errorf("Tried to set %v and expecting error, got nil", v)

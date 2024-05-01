@@ -1,4 +1,4 @@
-package repo
+package storage
 
 type MetricType string
 
