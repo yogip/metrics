@@ -6,18 +6,13 @@ import (
 
 // Interface for memory and database storages
 type Repository interface {
-	Get(string) (Metric, error)
-	Save(Metric) error
+	Get(string) (interface{}, error)
+	Save(interface{}) error
 }
 
-var storage *MemRepo
+var Storage *MemRepo
 
 func init() {
 	log.Println("Init storage")
-	storage = NewMemRepo()
-}
-
-func Get(metricType MetricType, metricName string) (Metric, bool) {
-	pk := pkey(metricType, metricName)
-	return storage.Get(pk)
+	Storage = NewMemRepo()
 }

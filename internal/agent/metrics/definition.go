@@ -1,40 +1,40 @@
 package metrics
 
 import (
-	"github.com/yogip/metrics/internal/storage"
+	"github.com/yogip/metrics/internal/models"
 )
 
-var PollCountCounter = storage.Counter{Name: "PollCount"}
+var PollCountCounter = models.Counter{Name: "PollCount"}
 
-var AllocGauge = storage.Gauge{Name: "Alloc"}
-var BuckHashSysGauge = storage.Gauge{Name: "BuckHashSys"}
-var FreesGauge = storage.Gauge{Name: "Frees"}
-var GCCPUFractionGauge = storage.Gauge{Name: "GCCPUFraction"}
-var GCSysGauge = storage.Gauge{Name: "GCSys"}
-var HeapAllocGauge = storage.Gauge{Name: "HeapAlloc"}
-var HeapIdleGauge = storage.Gauge{Name: "HeapIdle"}
-var HeapInuseGauge = storage.Gauge{Name: "HeapInuse"}
-var HeapObjectsGauge = storage.Gauge{Name: "HeapObjects"}
-var HeapReleasedGauge = storage.Gauge{Name: "HeapReleased"}
-var HeapSysGauge = storage.Gauge{Name: "HeapSys"}
-var LastGCGauge = storage.Gauge{Name: "LastGC"}
-var LookupsGauge = storage.Gauge{Name: "Lookups"}
-var MCacheInuseGauge = storage.Gauge{Name: "MCacheInuse"}
-var MCacheSysGauge = storage.Gauge{Name: "MCacheSys"}
-var MSpanInuseGauge = storage.Gauge{Name: "MSpanInuse"}
-var MSpanSysGauge = storage.Gauge{Name: "MSpanSys"}
-var MallocsGauge = storage.Gauge{Name: "Mallocs"}
-var NextGCGauge = storage.Gauge{Name: "NextGC"}
-var NumForcedGCGauge = storage.Gauge{Name: "NumForcedGC"}
-var NumGCGauge = storage.Gauge{Name: "NumGC"}
-var OtherSysGauge = storage.Gauge{Name: "OtherSys"}
-var PauseTotalNsGauge = storage.Gauge{Name: "PauseTotalNs"}
-var StackInuseGauge = storage.Gauge{Name: "StackInuse"}
-var StackSysGauge = storage.Gauge{Name: "StackSys"}
-var SysGauge = storage.Gauge{Name: "Sys"}
-var TotalAllocGauge = storage.Gauge{Name: "TotalAlloc"}
+var AllocGauge = models.Gauge{Name: "Alloc"}
+var BuckHashSysGauge = models.Gauge{Name: "BuckHashSys"}
+var FreesGauge = models.Gauge{Name: "Frees"}
+var GCCPUFractionGauge = models.Gauge{Name: "GCCPUFraction"}
+var GCSysGauge = models.Gauge{Name: "GCSys"}
+var HeapAllocGauge = models.Gauge{Name: "HeapAlloc"}
+var HeapIdleGauge = models.Gauge{Name: "HeapIdle"}
+var HeapInuseGauge = models.Gauge{Name: "HeapInuse"}
+var HeapObjectsGauge = models.Gauge{Name: "HeapObjects"}
+var HeapReleasedGauge = models.Gauge{Name: "HeapReleased"}
+var HeapSysGauge = models.Gauge{Name: "HeapSys"}
+var LastGCGauge = models.Gauge{Name: "LastGC"}
+var LookupsGauge = models.Gauge{Name: "Lookups"}
+var MCacheInuseGauge = models.Gauge{Name: "MCacheInuse"}
+var MCacheSysGauge = models.Gauge{Name: "MCacheSys"}
+var MSpanInuseGauge = models.Gauge{Name: "MSpanInuse"}
+var MSpanSysGauge = models.Gauge{Name: "MSpanSys"}
+var MallocsGauge = models.Gauge{Name: "Mallocs"}
+var NextGCGauge = models.Gauge{Name: "NextGC"}
+var NumForcedGCGauge = models.Gauge{Name: "NumForcedGC"}
+var NumGCGauge = models.Gauge{Name: "NumGC"}
+var OtherSysGauge = models.Gauge{Name: "OtherSys"}
+var PauseTotalNsGauge = models.Gauge{Name: "PauseTotalNs"}
+var StackInuseGauge = models.Gauge{Name: "StackInuse"}
+var StackSysGauge = models.Gauge{Name: "StackSys"}
+var SysGauge = models.Gauge{Name: "Sys"}
+var TotalAllocGauge = models.Gauge{Name: "TotalAlloc"}
 
-var AllMetrics []storage.Metric = []storage.Metric{
+var AllMetrics []models.Metric = []models.Metric{
 	&PollCountCounter,
 	&AllocGauge,
 	&BuckHashSysGauge,

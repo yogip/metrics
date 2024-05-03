@@ -1,8 +1,10 @@
-package storage
+package models
 
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/yogip/metrics/internal/storage"
 )
 
 type Metric interface {
@@ -117,12 +119,19 @@ func NewMetric(mType MetricType, name string) (Metric, error) {
 
 func GetMetric(mType MetricType, name string) (Metric, bool) {
 	pk := pkey(mType, name)
-	m, ok := storage.Get(pk)
-	return m, ok
+	m, ok := storage.Storage.Get(pk)
+	if !ok {
+		return nil, false
+	}
+	metric, ok := m.(Metric)
+	if !ok {
+		return nil, false
+	}
+	return metric, ok
 }
 
 func SaveMetric(m Metric) error {
-	return storage.Save(m.pk(), m)
+	return storage.Storage.Save(m.pk(), m)
 }
 
 func pkey(metricType MetricType, metricName string) string {

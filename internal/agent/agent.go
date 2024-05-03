@@ -12,7 +12,7 @@ import (
 
 	"github.com/yogip/metrics/internal/agent/metrics"
 	"github.com/yogip/metrics/internal/agent/transport"
-	"github.com/yogip/metrics/internal/storage"
+	"github.com/yogip/metrics/internal/models"
 )
 
 const pollInterval int = 2
@@ -65,7 +65,7 @@ func pollLauncher() {
 	}
 }
 
-func reportMetrics(metric storage.Metric) error {
+func reportMetrics(metric models.Metric) error {
 	err := transport.SendMetric(
 		metric.Type(),
 		metric.GetName(),
@@ -74,8 +74,8 @@ func reportMetrics(metric storage.Metric) error {
 	if err != nil {
 		return fmt.Errorf("sending metric error: %s", err)
 	}
-	if metric.Type() == storage.CounterType {
-		metric.(*storage.Counter).Value = 0
+	if metric.Type() == models.CounterType {
+		metric.(*models.Counter).Value = 0
 	}
 	return nil
 }

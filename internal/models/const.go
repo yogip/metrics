@@ -1,4 +1,4 @@
-package storage
+package models
 
 type MetricType string
 

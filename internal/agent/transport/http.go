@@ -6,14 +6,14 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/yogip/metrics/internal/storage"
+	"github.com/yogip/metrics/internal/models"
 )
 
-const ServerHost string = "http://localhost:8080"
-const MetricEndpoint string = "/update/%s/%s/%s" // POST http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
+var ServerHost string = "http://localhost:8080"
+var MetricEndpoint string = "/update/%s/%s/%s" // POST http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 
 // HTTTP Client to sent metrics to MetricEndpoint
-func SendMetric(metricType storage.MetricType, metricName string, value string) error {
+func SendMetric(metricType models.MetricType, metricName string, value string) error {
 	url := fmt.Sprintf(ServerHost+MetricEndpoint, metricType, metricName, value)
 	resp, err := http.Post(url, "text/plain", nil)
 	if err != nil {

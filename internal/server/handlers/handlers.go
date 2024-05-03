@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yogip/metrics/internal/storage"
+	"github.com/yogip/metrics/internal/models"
 )
 
 func UpdateHandler(res http.ResponseWriter, req *http.Request) {
@@ -21,19 +21,19 @@ func UpdateHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	metricType := storage.MetricType(pathParts[2])
+	metricType := models.MetricType(pathParts[2])
 	metricName := pathParts[3]
 	metricValue := pathParts[4]
 	log.Printf("Got update input %s:%s set %s\n", metricType, metricName, metricValue)
 
-	if metricType != storage.GaugeType && metricType != storage.CounterType {
+	if metricType != models.GaugeType && metricType != models.CounterType {
 		http.Error(res, "Incorrect metric type", http.StatusBadRequest)
 		return
 	}
 
-	metric, ok := storage.Get(metricType, metricName)
+	metric, ok := models.GetMetric(metricType, metricName)
 	if !ok {
-		metric, _ = storage.NewMetric(metricType, metricName)
+		metric, _ = models.NewMetric(metricType, metricName)
 	}
 
 	if err := metric.ParseString(metricValue); err != nil {
@@ -41,7 +41,7 @@ func UpdateHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := storage.SaveMetric(metric); err != nil {
+	if err := models.SaveMetric(metric); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -58,16 +58,16 @@ func GetHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	metricType := storage.MetricType(pathParts[2])
+	metricType := models.MetricType(pathParts[2])
 	metricName := pathParts[3]
 	log.Printf("Get value for %s:%s\n", metricType, metricName)
 
-	if metricType != storage.GaugeType && metricType != storage.CounterType {
+	if metricType != models.GaugeType && metricType != models.CounterType {
 		http.Error(res, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	metric, ok := storage.Get(metricType, metricName)
+	metric, ok := models.GetMetric(metricType, metricName)
 	if !ok {
 		http.NotFound(res, req)
 		return
