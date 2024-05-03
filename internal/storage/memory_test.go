@@ -42,14 +42,14 @@ func TestMemStorageSetAndGet(t *testing.T) {
 	for _, test := range tests {
 
 		t.Run(test.name, func(t *testing.T) {
-			stored_stub, ok := repo.Get(test.name)
+			storedStub, ok := repo.Get(test.name)
 			assert.Equal(t, test.valueExist, ok)
 
 			if !test.valueExist {
 				return
 			}
 
-			stub, ok := stored_stub.(*Stub)
+			stub, ok := storedStub.(*Stub)
 			assert.True(t, ok)
 
 			assert.Equal(t, test.name, stub.Name)
