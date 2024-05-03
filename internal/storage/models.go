@@ -7,8 +7,10 @@ import (
 
 type Metric interface {
 	Type() MetricType
-	Set(string) error
+	ParseString(string) error
 	String() string
+	StringValue() string
+	GetName() string
 	pk() string
 }
 
@@ -25,12 +27,24 @@ func (g *Gauge) Type() MetricType {
 	return GaugeType
 }
 
+func (g *Gauge) GetName() string {
+	return g.Name
+}
+
 func (g *Gauge) String() string {
 	return fmt.Sprintf("<Gauge %s: %f>", g.Name, g.Value)
 }
 
+func (g *Gauge) StringValue() string {
+	return strconv.FormatFloat(g.Value, 'f', -1, 64)
+}
+
+func (g *Gauge) Set(value float64) {
+	g.Value = value
+}
+
 // Set and convert value from sting, return error for wrong type
-func (g *Gauge) Set(value string) error {
+func (g *Gauge) ParseString(value string) error {
 	if v, err := strconv.ParseFloat(value, 64); err != nil {
 		return fmt.Errorf("could not set value (%s) to Gauge: %s", value, err)
 	} else {
@@ -52,12 +66,24 @@ func (c *Counter) Type() MetricType {
 	return CounterType
 }
 
+func (c *Counter) GetName() string {
+	return c.Name
+}
+
 func (c *Counter) String() string {
 	return fmt.Sprintf("<Countre %s: %d>", c.Name, c.Value)
 }
 
+func (c *Counter) StringValue() string {
+	return strconv.FormatInt(c.Value, 10)
+}
+
+func (c *Counter) Incremet(value int64) {
+	c.Value += value
+}
+
 // Set and convert value from sting, return error for wrong type
-func (c *Counter) Set(value string) error {
+func (c *Counter) ParseString(value string) error {
 	v, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return fmt.Errorf("could not set value (%s) to Counter: %s", value, err)

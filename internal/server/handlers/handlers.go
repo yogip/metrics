@@ -36,7 +36,7 @@ func UpdateHandler(res http.ResponseWriter, req *http.Request) {
 		metric, _ = storage.NewMetric(metricType, metricName)
 	}
 
-	if err := metric.Set(metricValue); err != nil {
+	if err := metric.ParseString(metricValue); err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}

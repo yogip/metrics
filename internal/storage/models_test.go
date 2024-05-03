@@ -32,7 +32,7 @@ func TestGaugeSetSuccess(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		err := g.Set(tc.Value)
+		err := g.ParseString(tc.Value)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
@@ -45,7 +45,7 @@ func TestGaugeSetSuccess(t *testing.T) {
 
 func TestGaugeSetFailed(t *testing.T) {
 	g := &Gauge{Name: "test", Value: 0}
-	err := g.Set("invalid")
+	err := g.ParseString("invalid")
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
@@ -63,7 +63,7 @@ func TestCounterSet(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		err := c.Set(tc.Value)
+		err := c.ParseString(tc.Value)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
@@ -96,7 +96,7 @@ func TestCounterSetFailed(t *testing.T) {
 	// }
 
 	for _, v := range []string{"invalid", "0.1", "0.00001", "2.000001", "-0.000000003", "-1"} {
-		err := c.Set(v)
+		err := c.ParseString(v)
 		if err == nil {
 			t.Errorf("Tried to set %v and expecting error, got nil", v)
 		}
