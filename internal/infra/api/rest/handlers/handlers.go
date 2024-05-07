@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -8,7 +9,6 @@ import (
 	"metrics/internal/core/service"
 
 	"github.com/gin-gonic/gin"
-	// "metrics/internal/infra/"
 )
 
 type Handler struct {
@@ -52,4 +52,21 @@ func (h *Handler) GetHandler(ctx *gin.Context) {
 	}
 
 	ctx.String(http.StatusOK, metric.Value)
+}
+
+func (h *Handler) ListHandler(ctx *gin.Context) {
+	metrics, err := h.metricService.ListMetrics()
+	if err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	content := "<html><body><ul>%s</ul></body></html>"
+	var listItems string
+	for _, m := range metrics.Metrics {
+		listItems += "<li><strong>" + m.Name + "</strong>: " + m.Value + "</li>"
+	}
+
+	ctx.Header("Content-Type", "text/html")
+	ctx.String(http.StatusOK, fmt.Sprintf(content, listItems))
 }

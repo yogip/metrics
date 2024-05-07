@@ -9,8 +9,10 @@ import (
 type Store interface {
 	GetGauge(req *model.MetricRequest) (*model.Gauge, error)
 	SetGauge(req *model.MetricRequest, gauge *model.Gauge) error
+	ListGauge() ([]*model.Gauge, error)
 	GetCounter(req *model.MetricRequest) (*model.Counter, error)
 	SetCounter(req *model.MetricRequest, counter *model.Counter) error
+	ListCounter() ([]*model.Counter, error)
 }
 
 type Metric interface {
@@ -26,6 +28,41 @@ func NewMetricService(store Store) *MetricService {
 	return &MetricService{
 		store: store,
 	}
+}
+
+func (m *MetricService) ListMetrics() (*model.ListMetricResponse, error) {
+	result := model.ListMetricResponse{Metrics: []*model.MetricResponse{}}
+	gagues, err := m.store.ListGauge()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list gauges: %w", err)
+	}
+	for _, gauge := range gagues {
+		result.Metrics = append(
+			result.Metrics,
+			&model.MetricResponse{
+				Name:  gauge.Name,
+				Type:  gauge.Type(),
+				Value: gauge.StringValue(),
+			},
+		)
+	}
+
+	counters, err := m.store.ListCounter()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list gauges: %w", err)
+	}
+	for _, counter := range counters {
+		result.Metrics = append(
+			result.Metrics,
+			&model.MetricResponse{
+				Name:  counter.Name,
+				Type:  counter.Type(),
+				Value: counter.StringValue(),
+			},
+		)
+	}
+
+	return &result, nil
 }
 
 func (m *MetricService) GetMetric(req *model.MetricRequest) (*model.MetricResponse, error) {

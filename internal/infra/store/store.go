@@ -8,8 +8,10 @@ import (
 type Store interface {
 	GetGauge(req *model.MetricRequest) (*model.Gauge, error)
 	SetGauge(req *model.MetricRequest, gauge *model.Gauge) error
+	ListGauge() ([]*model.Gauge, error)
 	GetCounter(req *model.MetricRequest) (*model.Counter, error)
 	SetCounter(req *model.MetricRequest, counter *model.Counter) error
+	ListCounter() ([]*model.Counter, error)
 }
 
 func NewStore() (Store, error) {

@@ -18,6 +18,7 @@ func NewAPI(metricService *service.MetricService) *API {
 	srv.Use(gin.Logger())
 	srv.Use(gin.Recovery())
 
+	srv.GET("/", handler.ListHandler)
 	srv.GET("/value/:type/:name", handler.GetHandler)
 	srv.POST("/update/:type/:name/:value", handler.UpdateHandler)
 

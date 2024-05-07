@@ -58,3 +58,25 @@ func (s *Store) SetCounter(req *model.MetricRequest, counter *model.Counter) err
 	s.counter[req.ID()] = counter
 	return nil
 }
+
+func (s *Store) ListGauge() ([]*model.Gauge, error) {
+	s.muxGauge.RLock()
+	defer s.muxGauge.RUnlock()
+
+	var res []*model.Gauge
+	for _, v := range s.gauge {
+		res = append(res, v)
+	}
+	return res, nil
+}
+
+func (s *Store) ListCounter() ([]*model.Counter, error) {
+	s.muxCounter.RLock()
+	defer s.muxCounter.RUnlock()
+
+	var res []*model.Counter
+	for _, v := range s.counter {
+		res = append(res, v)
+	}
+	return res, nil
+}
