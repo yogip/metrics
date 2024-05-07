@@ -12,11 +12,12 @@ import (
 
 var flagRunAddr string
 
-func init() {
-	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
-}
+// func init() {
+// flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
+// }
 
 func main() {
+	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
 	flag.Parse()
 
 	if err := run(); err != nil {
