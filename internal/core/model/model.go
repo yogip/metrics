@@ -19,6 +19,6 @@ type MetricResponse struct {
 
 type MetricUpdateRequest struct {
 	Name  string     `uri:"name" binding:"required"`
-	Type  MetricType `uri:"type" binding:"required" oneof: "gauge counter"`
+	Type  MetricType `uri:"type" binding:"required" oneof:"gauge counter"`
 	Value string     `uri:"value" binding:"required"`
 }
