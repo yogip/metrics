@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	// "metrics/internal/core/model"
 	"metrics/internal/core/model"
 )
 
