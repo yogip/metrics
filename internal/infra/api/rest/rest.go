@@ -27,6 +27,6 @@ func NewAPI(metricService *service.MetricService) *API {
 	}
 }
 
-func (app *API) Run() error {
-	return app.srv.Run("localhost:8080")
+func (app *API) Run(runAddr string) error {
+	return app.srv.Run(runAddr)
 }

@@ -23,7 +23,7 @@ func NewClient(serverHost string) *HTTPClient {
 
 // HTTTP Client to sent metrics to MetricEndpoint
 func (client *HTTPClient) SendMetric(req *model.MetricResponse) error {
-	url := fmt.Sprintf(client.ServerHost+client.MetricEndpoint, req.Type, req.Name, req.Value)
+	url := "http://" + fmt.Sprintf(client.ServerHost+client.MetricEndpoint, req.Type, req.Name, req.Value)
 	resp, err := http.Post(url, "text/plain", nil)
 	if err != nil {
 		log.Println(err)

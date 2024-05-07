@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 
@@ -9,7 +10,15 @@ import (
 	"metrics/internal/infra/store"
 )
 
+var flagRunAddr string
+
+func init() {
+	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "address and port to run server")
+}
+
 func main() {
+	flag.Parse()
+
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
@@ -24,8 +33,8 @@ func run() error {
 	log.Println("Service initialized")
 	api := rest.NewAPI(service)
 
-	log.Println("Start Server")
-	if err := api.Run(); err != nil {
+	log.Println("Start Server at:", flagRunAddr)
+	if err := api.Run(flagRunAddr); err != nil {
 		return fmt.Errorf("server has failed: %w", err)
 	}
 	return nil

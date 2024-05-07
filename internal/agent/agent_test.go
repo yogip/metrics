@@ -20,14 +20,10 @@ func TestPollFromRuntime(t *testing.T) {
 			if gauge.Name == "GCCPUFraction" {
 				continue
 			}
-			t.Run(gauge.Name, func(t *testing.T) {
-				assert.Greater(t, gauge.Value, 0.0)
-			})
+			assert.Greater(t, gauge.Value, 0.0)
 		} else {
 			counter, _ := metric.(*metrics.Counter)
-			t.Run(counter.Name, func(t *testing.T) {
-				assert.Greater(t, counter.Value, int64(0))
-			})
+			assert.Greater(t, counter.Value, int64(0))
 		}
 	}
 }
