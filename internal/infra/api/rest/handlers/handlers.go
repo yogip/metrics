@@ -20,19 +20,13 @@ func NewHandler(metricService *service.MetricService) *Handler {
 }
 
 func (h *Handler) UpdateHandler(ctx *gin.Context) {
-	metricType := model.MetricType(ctx.Param("type"))
-	metricName := ctx.Param("name")
-	metricValue := ctx.Param("value")
-	log.Printf("Got update input %s:%s set %s\n", metricType, metricName, metricValue)
-
-	if metricType != model.GaugeType && metricType != model.CounterType {
-		ctx.String(http.StatusBadRequest, "Incorrect metric type: %s", metricType)
-		return
+	req := &model.MetricUpdateRequest{}
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
 	}
+	log.Printf("Getting update request %s", req)
 
-	_, err := h.metricService.SetMetricValue(
-		&model.MetricUpdateRequest{Name: metricName, Type: metricType, Value: metricValue},
-	)
+	_, err := h.metricService.SetMetricValue(req)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		return
@@ -40,18 +34,14 @@ func (h *Handler) UpdateHandler(ctx *gin.Context) {
 }
 
 func (h *Handler) GetHandler(ctx *gin.Context) {
-	metricType := model.MetricType(ctx.Param("type"))
-	metricName := ctx.Param("name")
-	log.Printf("Getting value for %s:%s\n", metricType, metricName)
-
-	if metricType != model.GaugeType && metricType != model.CounterType {
-		ctx.String(http.StatusBadRequest, "Incorrect metric type: %s", metricType)
-		return
+	req := &model.MetricRequest{}
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
 	}
 
-	metric, err := h.metricService.GetMetric(
-		&model.MetricRequest{Name: metricName, Type: metricType},
-	)
+	log.Printf("Getting value for %s:%s", req.Name, req.Type)
+
+	metric, err := h.metricService.GetMetric(req)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		return

@@ -27,6 +27,17 @@ func TestUpdateHandler(t *testing.T) {
 		want       want
 	}{
 		{
+			name:       "incorrect_type",
+			metricName: "name",
+			metricType: "incorrectType",
+			value:      "200",
+			method:     http.MethodPost,
+			want: want{
+				code:     400,
+				response: "unknown metric type: incorrectType",
+			},
+		},
+		{
 			name:       "counter - positive #1",
 			metricName: "name",
 			metricType: string(model.CounterType),
