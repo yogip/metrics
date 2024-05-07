@@ -62,8 +62,8 @@ func reportMetrics(client metrics.Transporter) {
 }
 
 func Run(config *config.AgentConfig) {
-	pollTicker := time.NewTicker(config.PollInterval)
-	reportTicker := time.NewTicker(config.ReportInterval)
+	pollTicker := time.NewTicker(time.Duration(config.PollInterval) * time.Second)
+	reportTicker := time.NewTicker(time.Duration(config.ReportInterval) * time.Second)
 	client := transport.NewClient(config.ServerAddresPort)
 
 	quit := make(chan os.Signal, 1)
