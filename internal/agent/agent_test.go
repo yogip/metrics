@@ -1,30 +1,33 @@
 package agent
 
 import (
+	"fmt"
 	"testing"
 
-	// "time"
+	"metrics/internal/agent/metrics"
+	"metrics/internal/core/model"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/yogip/metrics/internal/agent/metrics"
-	"github.com/yogip/metrics/internal/models"
 )
 
 func TestPollFromRuntime(t *testing.T) {
 	pollFromRuntime()
 
 	for _, metric := range metrics.AllMetrics {
-		if metric.GetName() == "GCCPUFraction" {
-			continue
-		}
-		t.Run(metric.GetName(), func(t *testing.T) {
-			if metric.Type() == models.GaugeType {
-				gauge, _ := metric.(*models.Gauge)
-				assert.Greater(t, gauge.Value, 0.0)
-			} else {
-				counter, _ := metric.(*models.Counter)
-				assert.Greater(t, counter.Value, int64(0))
+		fmt.Printf("-------%s\n", metric)
+		if metric.Type() == model.GaugeType {
+			gauge, _ := metric.(*metrics.Gauge)
+			if gauge.Name == "GCCPUFraction" {
+				continue
 			}
-		})
+			t.Run(gauge.Name, func(t *testing.T) {
+				assert.Greater(t, gauge.Value, 0.0)
+			})
+		} else {
+			counter, _ := metric.(*metrics.Counter)
+			t.Run(counter.Name, func(t *testing.T) {
+				assert.Greater(t, counter.Value, int64(0))
+			})
+		}
 	}
 }

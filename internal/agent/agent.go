@@ -10,9 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/yogip/metrics/internal/agent/metrics"
-	"github.com/yogip/metrics/internal/agent/transport"
-	"github.com/yogip/metrics/internal/models"
+	"metrics/internal/agent/metrics"
+	"metrics/internal/agent/transport"
 )
 
 const pollInterval int = 2
@@ -65,29 +64,22 @@ func pollLauncher() {
 	}
 }
 
-func reportMetrics(metric models.Metric) error {
-	err := transport.SendMetric(
-		metric.Type(),
-		metric.GetName(),
-		metric.StringValue(),
-	)
+func reportMetrics(metric metrics.Metric, client metrics.Transporter) error {
+	err := metric.Send(client)
 	if err != nil {
 		return fmt.Errorf("sending metric error: %s", err)
-	}
-	if metric.Type() == models.CounterType {
-		metric.(*models.Counter).Value = 0
 	}
 	return nil
 }
 
 // Method send all metrics to server and sleep for reportInterval
 func reportLauncher() {
+	client := transport.NewClient("http://localhost:8080")
 	for {
-		log.Println("Reporting all metrics")
 		time.Sleep(time.Duration(reportInterval) * time.Second)
+		log.Println("Reporting all metrics")
 		for _, metric := range metrics.AllMetrics {
-			// use gorutines for sending metrics, but only when storage will has mutex
-			reportMetrics(metric)
+			reportMetrics(metric, client)
 		}
 	}
 }

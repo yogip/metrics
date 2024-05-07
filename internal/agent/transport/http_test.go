@@ -6,103 +6,104 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"metrics/internal/core/model"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/yogip/metrics/internal/models"
 )
 
 func TestSendMetric(t *testing.T) {
 	tests := []struct {
-		mType models.MetricType
+		mType model.MetricType
 		name  string
 		value string
 	}{
 		{
-			mType: models.CounterType,
+			mType: model.CounterType,
 			name:  "counter",
 			value: "3",
 		},
 		{
-			mType: models.CounterType,
+			mType: model.CounterType,
 			name:  "counter_zero",
 			value: "0",
 		},
 		{
-			mType: models.CounterType,
+			mType: model.CounterType,
 			name:  "counter_negative_zero",
 			value: "-0",
 		},
 		{
-			mType: models.CounterType,
+			mType: model.CounterType,
 			name:  "counter_negative",
 			value: "-1",
 		},
 		{
-			mType: models.CounterType,
+			mType: model.CounterType,
 			name:  "counter_big_negative",
 			value: "-10000000000000000",
 		},
 		{
-			mType: models.CounterType,
+			mType: model.CounterType,
 			name:  "counter_big",
 			value: "10000000000000000",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "gauge",
 			value: "3.0",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "gauge_with_int",
 			value: "3",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "gauge_zero",
 			value: "0",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "gauge_zero_2",
 			value: "0.0",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "gauge_zero_3",
 			value: ".0",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "gauge_near_zero",
 			value: "0.0000000000001",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "gauge_negative_zero",
 			value: "-0",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "gauge_negative",
 			value: "-1.01",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "gauge_big_negative",
 			value: "-100000000.1",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "gauge_big",
 			value: "1000000000000000.2",
 		},
 		{
-			mType: models.GaugeType,
+			mType: model.GaugeType,
 			name:  "GaugeCapitalizedName",
 			value: "12.12",
 		},
 		{
-			mType: models.CounterType,
+			mType: model.CounterType,
 			name:  "CaunterCapitalizedName",
 			value: "12",
 		},
@@ -121,10 +122,14 @@ func TestSendMetric(t *testing.T) {
 			}))
 			defer server.Close()
 
-			ServerHost = server.URL
+			client := NewClient(server.URL)
 
 			// Call the function being tested
-			err := SendMetric(test.mType, test.name, test.value)
+			err := client.SendMetric(&model.MetricResponse{
+				Type:  test.mType,
+				Name:  test.name,
+				Value: test.value,
+			})
 
 			// Verify the result
 			assert.NoError(t, err)

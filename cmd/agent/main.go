@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/yogip/metrics/internal/agent"
+	"metrics/internal/agent"
 )
 
 func main() {

@@ -5,10 +5,20 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yogip/metrics/internal/models"
+	"metrics/internal/core/model"
+	"metrics/internal/core/service"
+	// "metrics/internal/infra/"
 )
 
-func UpdateHandler(res http.ResponseWriter, req *http.Request) {
+type Handler struct {
+	metricService *service.MetricService
+}
+
+func NewHandler(metricService *service.MetricService) *Handler {
+	return &Handler{metricService: metricService}
+}
+
+func (h *Handler) UpdateHandler(res http.ResponseWriter, req *http.Request) {
 	log.Printf("handler method: [%s] %s\n", req.Method, req.URL.Path)
 	if req.Method != http.MethodPost {
 		http.Error(res, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -21,33 +31,26 @@ func UpdateHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	metricType := models.MetricType(pathParts[2])
+	metricType := model.MetricType(pathParts[2])
 	metricName := pathParts[3]
 	metricValue := pathParts[4]
 	log.Printf("Got update input %s:%s set %s\n", metricType, metricName, metricValue)
 
-	if metricType != models.GaugeType && metricType != models.CounterType {
+	if metricType != model.GaugeType && metricType != model.CounterType {
 		http.Error(res, "Incorrect metric type", http.StatusBadRequest)
 		return
 	}
 
-	metric, ok := models.GetMetric(metricType, metricName)
-	if !ok {
-		metric, _ = models.NewMetric(metricType, metricName)
-	}
-
-	if err := metric.ParseString(metricValue); err != nil {
-		http.Error(res, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := models.SaveMetric(metric); err != nil {
+	_, err := h.metricService.SetMetricValue(
+		&model.MetricUpdateRequest{Name: metricName, Type: metricType, Value: metricValue},
+	)
+	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
 }
 
-func GetHandler(res http.ResponseWriter, req *http.Request) {
+func (h *Handler) GetHandler(res http.ResponseWriter, req *http.Request) {
 	log.Printf("handler method: [%s] %s\n", req.Method, req.URL.Path)
 	if req.Method != http.MethodGet {
 		http.Error(res, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -58,20 +61,26 @@ func GetHandler(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	metricType := models.MetricType(pathParts[2])
+	metricType := model.MetricType(pathParts[2])
 	metricName := pathParts[3]
 	log.Printf("Get value for %s:%s\n", metricType, metricName)
 
-	if metricType != models.GaugeType && metricType != models.CounterType {
+	if metricType != model.GaugeType && metricType != model.CounterType {
 		http.Error(res, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	metric, ok := models.GetMetric(metricType, metricName)
-	if !ok {
+	metric, err := h.metricService.GetMetric(
+		&model.MetricRequest{Name: metricName, Type: metricType},
+	)
+	if err != nil {
+		http.Error(res, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if metric == nil {
 		http.NotFound(res, req)
 		return
 	}
 
-	res.Write([]byte(metric.String()))
+	res.Write([]byte(metric.Value))
 }

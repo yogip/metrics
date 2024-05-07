@@ -1,9 +1,32 @@
 package main
 
 import (
-	"github.com/yogip/metrics/internal/server"
+	"fmt"
+	"log"
+
+	"metrics/internal/core/service"
+	"metrics/internal/infra/api/rest"
+	"metrics/internal/infra/store"
 )
 
 func main() {
-	server.Run()
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
+	store, err := store.NewStore()
+	if err != nil {
+		return fmt.Errorf("failed to initialize a store: %w", err)
+	}
+	service := service.NewMetricService(store)
+	log.Println("Service initialized")
+	api := rest.NewAPI(service)
+
+	log.Println("Start Server")
+	if err := api.Run(); err != nil {
+		return fmt.Errorf("server has failed: %w", err)
+	}
+	return nil
 }

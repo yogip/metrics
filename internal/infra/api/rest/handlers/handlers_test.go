@@ -7,9 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"metrics/internal/core/model"
+	"metrics/internal/core/service"
+	"metrics/internal/infra/store/memory"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/yogip/metrics/internal/models"
 )
 
 func TestUpdateHandler(t *testing.T) {
@@ -28,7 +31,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "counter - positive #1",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "200",
 			method:     http.MethodPost,
 			want: want{
@@ -39,7 +42,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "counter - positive #2",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "2",
 			method:     http.MethodPost,
 			want: want{
@@ -50,7 +53,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "counter - zero 0",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "0",
 			method:     http.MethodPost,
 			want: want{
@@ -61,18 +64,18 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "counter - zero 0.0",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "0.0",
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "could not set value (0.0) to Counter: strconv.ParseInt: parsing \"0.0\": invalid syntax\n",
+				response: "failed to parse counter value: could not set value (0.0) to Counter: strconv.ParseInt: parsing \"0.0\": invalid syntax\n",
 			},
 		},
 		{
 			name:       "counter - negative zero",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "-0",
 			method:     http.MethodPost,
 			want: want{
@@ -83,51 +86,51 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "counter - negative value",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "-1",
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "could not set negative value (-1) to Counter\n",
+				response: "failed to parse counter value: could not set negative value (-1) to Counter\n",
 			},
 		},
 		{
 			name:       "counter - negative big value",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "-1000000000000",
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "could not set negative value (-1000000000000) to Counter\n",
+				response: "failed to parse counter value: could not set negative value (-1000000000000) to Counter\n",
 			},
 		},
 		{
 			name:       "counter - negative float value",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "-10.0",
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "could not set value (-10.0) to Counter: strconv.ParseInt: parsing \"-10.0\": invalid syntax\n",
+				response: "failed to parse counter value: could not set value (-10.0) to Counter: strconv.ParseInt: parsing \"-10.0\": invalid syntax\n",
 			},
 		},
 		{
 			name:       "counter - not number value",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "incorrect",
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "could not set value (incorrect) to Counter: strconv.ParseInt: parsing \"incorrect\": invalid syntax\n",
+				response: "failed to parse counter value: could not set value (incorrect) to Counter: strconv.ParseInt: parsing \"incorrect\": invalid syntax\n",
 			},
 		},
 		{
 			name:       "counter - value 00",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "00",
 			method:     http.MethodPost,
 			want: want{
@@ -138,7 +141,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "counter - get method",
 			metricName: "name",
-			metricType: string(models.CounterType),
+			metricType: string(model.CounterType),
 			value:      "00",
 			method:     http.MethodGet,
 			want: want{
@@ -151,7 +154,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "gauge - positive #1",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "20.1230",
 			method:     http.MethodPost,
 			want: want{
@@ -162,7 +165,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "gauge - positive #2",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "0.1230111",
 			method:     http.MethodPost,
 			want: want{
@@ -173,7 +176,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "gauge - zero 0",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "0",
 			method:     http.MethodPost,
 			want: want{
@@ -184,7 +187,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "gauge - zero 0.0",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "0.0",
 			method:     http.MethodPost,
 			want: want{
@@ -195,7 +198,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "gauge - negative zero",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "-0",
 			method:     http.MethodPost,
 			want: want{
@@ -206,7 +209,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "gauge - negative value",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "-1",
 			method:     http.MethodPost,
 			want: want{
@@ -217,7 +220,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "gauge - big value",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "1000000000000.123",
 			method:     http.MethodPost,
 			want: want{
@@ -228,7 +231,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "gauge - negative value 2",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "-10.0",
 			method:     http.MethodPost,
 			want: want{
@@ -239,7 +242,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "gauge - int value",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "100",
 			method:     http.MethodPost,
 			want: want{
@@ -250,18 +253,18 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name:       "gauge - not number value",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "incorrect",
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "could not set value (incorrect) to Gauge: strconv.ParseFloat: parsing \"incorrect\": invalid syntax\n",
+				response: "failed to parse gauge value: could not set value (incorrect) to Gauge: strconv.ParseFloat: parsing \"incorrect\": invalid syntax\n",
 			},
 		},
 		{
 			name:       "gauge - value 00",
 			metricName: "name",
-			metricType: string(models.GaugeType),
+			metricType: string(model.GaugeType),
 			value:      "00",
 			method:     http.MethodPost,
 			want: want{
@@ -270,13 +273,17 @@ func TestUpdateHandler(t *testing.T) {
 			},
 		},
 	}
+	store := memory.NewStore()
+	service := service.NewMetricService(store)
+	handler := NewHandler(service)
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			url := fmt.Sprintf("/update/%s/%s/%s", test.metricType, test.metricName, test.value)
 			request := httptest.NewRequest(test.method, url, nil)
 
 			w := httptest.NewRecorder()
-			UpdateHandler(w, request)
+			handler.UpdateHandler(w, request)
 
 			res := w.Result()
 			assert.Equal(t, test.want.code, res.StatusCode)

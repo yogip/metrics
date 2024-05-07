@@ -1,4 +1,4 @@
-module github.com/yogip/metrics
+module metrics
 
 go 1.20
 
