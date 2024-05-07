@@ -9,20 +9,20 @@ import (
 	"metrics/internal/core/model"
 )
 
-type HttpClient struct {
+type HTTPClient struct {
 	ServerHost     string
 	MetricEndpoint string
 }
 
-func NewClient(serverHost string) *HttpClient {
-	return &HttpClient{
+func NewClient(serverHost string) *HTTPClient {
+	return &HTTPClient{
 		ServerHost:     serverHost,
 		MetricEndpoint: "/update/%s/%s/%s", // POST http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
 	}
 }
 
 // HTTTP Client to sent metrics to MetricEndpoint
-func (client *HttpClient) SendMetric(req *model.MetricResponse) error {
+func (client *HTTPClient) SendMetric(req *model.MetricResponse) error {
 	url := fmt.Sprintf(client.ServerHost+client.MetricEndpoint, req.Type, req.Name, req.Value)
 	resp, err := http.Post(url, "text/plain", nil)
 	if err != nil {

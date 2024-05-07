@@ -1,8 +1,7 @@
-package handlers
+package rest
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,7 +11,6 @@ import (
 	"metrics/internal/infra/store/memory"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateHandler(t *testing.T) {
@@ -69,7 +67,7 @@ func TestUpdateHandler(t *testing.T) {
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "failed to parse counter value: could not set value (0.0) to Counter: strconv.ParseInt: parsing \"0.0\": invalid syntax\n",
+				response: "failed to parse counter value: could not set value (0.0) to Counter: strconv.ParseInt: parsing \"0.0\": invalid syntax",
 			},
 		},
 		{
@@ -91,7 +89,7 @@ func TestUpdateHandler(t *testing.T) {
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "failed to parse counter value: could not set negative value (-1) to Counter\n",
+				response: "failed to parse counter value: could not set negative value (-1) to Counter",
 			},
 		},
 		{
@@ -102,7 +100,7 @@ func TestUpdateHandler(t *testing.T) {
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "failed to parse counter value: could not set negative value (-1000000000000) to Counter\n",
+				response: "failed to parse counter value: could not set negative value (-1000000000000) to Counter",
 			},
 		},
 		{
@@ -113,7 +111,7 @@ func TestUpdateHandler(t *testing.T) {
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "failed to parse counter value: could not set value (-10.0) to Counter: strconv.ParseInt: parsing \"-10.0\": invalid syntax\n",
+				response: "failed to parse counter value: could not set value (-10.0) to Counter: strconv.ParseInt: parsing \"-10.0\": invalid syntax",
 			},
 		},
 		{
@@ -124,7 +122,7 @@ func TestUpdateHandler(t *testing.T) {
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "failed to parse counter value: could not set value (incorrect) to Counter: strconv.ParseInt: parsing \"incorrect\": invalid syntax\n",
+				response: "failed to parse counter value: could not set value (incorrect) to Counter: strconv.ParseInt: parsing \"incorrect\": invalid syntax",
 			},
 		},
 		{
@@ -145,8 +143,8 @@ func TestUpdateHandler(t *testing.T) {
 			value:      "00",
 			method:     http.MethodGet,
 			want: want{
-				code:     405,
-				response: "Method Not Allowed\n",
+				code:     404,
+				response: "404 page not found",
 			},
 		},
 
@@ -258,7 +256,7 @@ func TestUpdateHandler(t *testing.T) {
 			method:     http.MethodPost,
 			want: want{
 				code:     400,
-				response: "failed to parse gauge value: could not set value (incorrect) to Gauge: strconv.ParseFloat: parsing \"incorrect\": invalid syntax\n",
+				response: "failed to parse gauge value: could not set value (incorrect) to Gauge: strconv.ParseFloat: parsing \"incorrect\": invalid syntax",
 			},
 		},
 		{
@@ -275,7 +273,8 @@ func TestUpdateHandler(t *testing.T) {
 	}
 	store := memory.NewStore()
 	service := service.NewMetricService(store)
-	handler := NewHandler(service)
+
+	api := NewAPI(service)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -283,16 +282,10 @@ func TestUpdateHandler(t *testing.T) {
 			request := httptest.NewRequest(test.method, url, nil)
 
 			w := httptest.NewRecorder()
-			handler.UpdateHandler(w, request)
+			api.srv.ServeHTTP(w, request)
 
-			res := w.Result()
-			assert.Equal(t, test.want.code, res.StatusCode)
-
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
-
-			require.NoError(t, err)
-			assert.Equal(t, test.want.response, string(resBody))
+			assert.Equal(t, test.want.code, w.Code)
+			assert.Equal(t, test.want.response, w.Body.String())
 		})
 	}
 }

@@ -42,16 +42,16 @@ func (m *MetricService) GetMetric(req *model.MetricRequest) (*model.MetricRespon
 	}
 
 	if err != nil {
-		return &model.MetricResponse{}, fmt.Errorf("failed to fetch %s from the store: %w", req.Type, err)
+		return nil, fmt.Errorf("failed to fetch %s from the store: %w", req.Type, err)
 	}
 	switch req.Type {
 	case model.CounterType:
 		if counter, ok := metric.(*model.Counter); ok && counter == nil {
-			return &model.MetricResponse{}, fmt.Errorf("counter %s not found", req.Name)
+			return nil, nil
 		}
 	case model.GaugeType:
 		if gauge, ok := metric.(*model.Gauge); ok && gauge == nil {
-			return &model.MetricResponse{}, fmt.Errorf("gauge %s not found", req.Name)
+			return nil, nil
 		}
 	}
 

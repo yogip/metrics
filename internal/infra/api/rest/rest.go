@@ -1,28 +1,31 @@
 package rest
 
 import (
-	"net/http"
-
 	"metrics/internal/core/service"
 	"metrics/internal/infra/api/rest/handlers"
+
+	"github.com/gin-gonic/gin"
 )
 
 type API struct {
-	srv *http.ServeMux
+	srv *gin.Engine
 }
 
 func NewAPI(metricService *service.MetricService) *API {
 	handler := handlers.NewHandler(metricService)
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/update/", handler.UpdateHandler)
-	mux.HandleFunc("/value/", handler.GetHandler)
+	srv := gin.Default()
+	srv.Use(gin.Logger())
+	srv.Use(gin.Recovery())
+
+	srv.GET("/value/:type/:name", handler.GetHandler)
+	srv.POST("/update/:type/:name/:value", handler.UpdateHandler)
 
 	return &API{
-		srv: mux,
+		srv: srv,
 	}
 }
 
 func (app *API) Run() error {
-	return http.ListenAndServe("localhost:8080", app.srv)
+	return app.srv.Run("localhost:8080")
 }
