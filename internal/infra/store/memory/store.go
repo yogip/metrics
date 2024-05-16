@@ -63,7 +63,7 @@ func (s *Store) ListGauge() ([]*model.Gauge, error) {
 	s.muxGauge.RLock()
 	defer s.muxGauge.RUnlock()
 
-	var res []*model.Gauge
+	res := make([]*model.Gauge, 0, len(s.gauge))
 	for _, v := range s.gauge {
 		res = append(res, v)
 	}
@@ -74,7 +74,7 @@ func (s *Store) ListCounter() ([]*model.Counter, error) {
 	s.muxCounter.RLock()
 	defer s.muxCounter.RUnlock()
 
-	var res []*model.Counter
+	res := make([]*model.Counter, 0, len(s.counter))
 	for _, v := range s.counter {
 		res = append(res, v)
 	}
