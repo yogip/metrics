@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"log"
 	"os"
 	"os/signal"
 	"runtime"
@@ -11,10 +10,13 @@ import (
 	"metrics/internal/agent/config"
 	"metrics/internal/agent/metrics"
 	"metrics/internal/agent/transport"
+	"metrics/internal/logger"
+
+	"go.uber.org/zap"
 )
 
 func pollFromRuntime() {
-	log.Println("Polling metrics")
+	logger.Log.Debug("Polling metrics")
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
 
@@ -52,11 +54,11 @@ func pollFromRuntime() {
 }
 
 func reportMetrics(client metrics.Transporter) {
-	log.Println("Reporting all metrics")
+	logger.Log.Debug("Reporting all metrics")
 	for _, metric := range metrics.AllMetrics {
 		err := metric.Send(client)
 		if err != nil {
-			log.Printf("sending metric error: %s", err)
+			logger.Log.Error("sending metric error", zap.String("error", err.Error()))
 		}
 	}
 }
@@ -75,7 +77,7 @@ func Run(config *config.AgentConfig) {
 	for {
 		select {
 		case <-quit:
-			log.Println("Received Ctrl+C, stopping...")
+			logger.Log.Info("Received Ctrl+C, stopping...")
 			return
 		case <-pollTicker.C:
 			pollFromRuntime()
