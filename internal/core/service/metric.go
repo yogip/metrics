@@ -181,15 +181,20 @@ func (m *MetricService) UpsertMetricValue(req *model.MetricsV2) (*model.MetricsV
 	}
 }
 
-func (m *MetricService) BuildMetricRequest(req *model.MetricUpdateRequest, mustParseValue bool) (*model.MetricsV2, error) {
+func (m *MetricService) BuildMetricRequest(
+	name string, mType model.MetricType, value string, mustParseValue bool,
+) (*model.MetricsV2, error) {
 	reqV2 := &model.MetricsV2{
-		ID:    req.Name,
-		MType: req.Type,
+		ID:    name,
+		MType: mType,
+	}
+	if value == "" && !mustParseValue {
+		return reqV2, nil
 	}
 
-	switch req.Type {
+	switch mType {
 	case model.CounterType:
-		v, err := strconv.ParseInt(req.Value, 10, 64)
+		v, err := strconv.ParseInt(value, 10, 64)
 		if err != nil && mustParseValue {
 			return nil, fmt.Errorf("failed to parse counter value: %w", err)
 		}
@@ -198,7 +203,7 @@ func (m *MetricService) BuildMetricRequest(req *model.MetricUpdateRequest, mustP
 		}
 		reqV2.Delta = &v
 	case model.GaugeType:
-		v, err := strconv.ParseFloat(req.Value, 64)
+		v, err := strconv.ParseFloat(value, 64)
 		if err != nil && mustParseValue {
 			return nil, fmt.Errorf("failed to parse gauge value: %w", err)
 		}
@@ -207,7 +212,7 @@ func (m *MetricService) BuildMetricRequest(req *model.MetricUpdateRequest, mustP
 		}
 		reqV2.Value = &v
 	default:
-		return nil, fmt.Errorf("unknown metric type: %s", req.Type.String())
+		return nil, fmt.Errorf("unknown metric type: %s", mType.String())
 	}
 
 	return reqV2, nil

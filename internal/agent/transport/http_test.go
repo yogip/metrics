@@ -19,12 +19,12 @@ func TestSendMetric(t *testing.T) {
 	var minusOne int64 = -1
 	var minusBig int64 = -10000000000000000
 
-	var tenFloat float64 = 10.
-	var zeroFloat float64 = 0.
-	var bigFloat float64 = 10000000000000000.0
-	var nearZeroFloat float64 = 0.000000000000001
-	var minusTenFloat float64 = -10
-	var minusBigFloat float64 = -10000000000000000
+	tenFloat := 10.
+	zeroFloat := 0.
+	bigFloat := 10000000000000000.0
+	nearZeroFloat := 0.000000000000001
+	minusTenFloat := -10.
+	minusBigFloat := -10000000000000000.
 
 	tests := []model.MetricsV2{
 		{

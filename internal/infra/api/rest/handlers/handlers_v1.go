@@ -35,7 +35,7 @@ func (h *HandlerV1) UpdateHandler(ctx *gin.Context) {
 	)
 	log.Debug("Getting update request")
 
-	reqV2, err := h.metricService.BuildMetricRequest(req, true)
+	reqV2, err := h.metricService.BuildMetricRequest(req.Name, req.Type, req.Value, true)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		log.Error("Error parsing metric value", zap.Error(err))
@@ -51,7 +51,7 @@ func (h *HandlerV1) UpdateHandler(ctx *gin.Context) {
 }
 
 func (h *HandlerV1) GetHandler(ctx *gin.Context) {
-	req := &model.MetricUpdateRequest{}
+	req := &model.MetricRequest{}
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		logger.Log.Error("Error binding uri", zap.Error(err))
@@ -64,7 +64,7 @@ func (h *HandlerV1) GetHandler(ctx *gin.Context) {
 
 	log.Debug("Getting value for metric")
 
-	reqV2, err := h.metricService.BuildMetricRequest(req, false)
+	reqV2, err := h.metricService.BuildMetricRequest(req.Name, req.Type, "", false)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		log.Error("Error converting metric request to V2", zap.Error(err))
