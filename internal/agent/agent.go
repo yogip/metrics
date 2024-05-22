@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"math/rand"
 	"os"
 	"os/signal"
 	"runtime"
@@ -17,6 +18,8 @@ import (
 
 func pollFromRuntime() {
 	logger.Log.Debug("Polling metrics")
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
 
@@ -24,6 +27,7 @@ func pollFromRuntime() {
 	metrics.PollCountCounter.Incremet(1)
 
 	// Gauge metrics
+	metrics.RandomValue.Set(r.Float64())
 	metrics.AllocGauge.Set(float64(rtm.Alloc))
 	metrics.BuckHashSysGauge.Set(float64(rtm.BuckHashSys))
 	metrics.FreesGauge.Set(float64(rtm.Frees))
