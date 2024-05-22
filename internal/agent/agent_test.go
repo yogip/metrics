@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"fmt"
 	"testing"
 
 	"metrics/internal/agent/metrics"
@@ -14,7 +13,6 @@ func TestPollFromRuntime(t *testing.T) {
 	pollFromRuntime()
 
 	for _, metric := range metrics.AllMetrics {
-		fmt.Printf("-------%s\n", metric)
 		if metric.Type() == model.GaugeType {
 			gauge, _ := metric.(*metrics.Gauge)
 			if gauge.Name == "GCCPUFraction" {

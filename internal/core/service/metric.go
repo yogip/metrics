@@ -1,7 +1,9 @@
 package service
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
 
 	"metrics/internal/core/model"
 )
@@ -17,7 +19,7 @@ type Store interface {
 
 type Metric interface {
 	StringValue() string
-	ParseString(value string) error
+	Type() model.MetricType
 }
 
 type MetricService struct {
@@ -65,87 +67,148 @@ func (m *MetricService) ListMetrics() (*model.ListMetricResponse, error) {
 	return &result, nil
 }
 
-func (m *MetricService) GetMetric(req *model.MetricRequest) (*model.MetricResponse, error) {
-	var metric Metric
-	var err error
+func (m *MetricService) GetCounter(req *model.MetricsV2) (*model.MetricsV2, error) {
+	storeReq := &model.MetricRequest{Name: req.ID, Type: req.MType}
 
-	switch req.Type {
-	case model.CounterType:
-		metric, err = m.store.GetCounter(req)
-	case model.GaugeType:
-		metric, err = m.store.GetGauge(req)
-	default:
-		return nil, fmt.Errorf("unknown metric type: %s", req.Type)
-	}
-
+	counter, err := m.store.GetCounter(storeReq)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch %s from the store: %w", req.Type, err)
+		return nil, fmt.Errorf("failed to fetch counter from the store: %w", err)
 	}
-	switch req.Type {
-	case model.CounterType:
-		if counter, ok := metric.(*model.Counter); ok && counter == nil {
-			return nil, nil
-		}
-	case model.GaugeType:
-		if gauge, ok := metric.(*model.Gauge); ok && gauge == nil {
-			return nil, nil
-		}
+	if counter == nil {
+		return nil, nil
 	}
-
-	return &model.MetricResponse{
-		Name:  req.Name,
-		Type:  model.CounterType,
-		Value: metric.StringValue(),
-	}, err
+	return &model.MetricsV2{
+		ID:    req.ID,
+		MType: model.CounterType,
+		Delta: &counter.Value,
+	}, nil
 }
 
-func (m *MetricService) SetMetricValue(req *model.MetricUpdateRequest) (*model.MetricResponse, error) {
-	var metric Metric
-	var err error
+func (m *MetricService) GetGauge(req *model.MetricsV2) (*model.MetricsV2, error) {
+	storeReq := &model.MetricRequest{Name: req.ID, Type: req.MType}
 
-	getReq := &model.MetricRequest{Name: req.Name, Type: req.Type}
+	gauge, err := m.store.GetGauge(storeReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch cougauge from the store: %w", err)
+	}
+	if gauge == nil {
+		return nil, nil
+	}
+	return &model.MetricsV2{
+		ID:    req.ID,
+		MType: model.GaugeType,
+		Value: &gauge.Value,
+	}, nil
+}
 
-	switch req.Type {
+func (m *MetricService) GetMetric(req *model.MetricsV2) (*model.MetricsV2, error) {
+	switch req.MType {
 	case model.CounterType:
-		metric, err = m.store.GetCounter(getReq)
+		return m.GetCounter(req)
 	case model.GaugeType:
-		metric, err = m.store.GetGauge(getReq)
+		return m.GetGauge(req)
 	default:
-		return nil, fmt.Errorf("unknown metric type: %s", req.Type)
+		return nil, fmt.Errorf("unknown metric type: %s", req.MType)
+	}
+}
+
+func (m *MetricService) UpsertGaugeValue(req *model.MetricsV2) (*model.MetricsV2, error) {
+	storeReq := &model.MetricRequest{Name: req.ID, Type: req.MType}
+
+	gauge, err := m.store.GetGauge(storeReq)
+	if err != nil {
+		return &model.MetricsV2{}, fmt.Errorf("failed to fetch %s from the store: %w", req.MType.String(), err)
+	}
+	if gauge == nil {
+		gauge = model.NewGauge(req.ID)
 	}
 
-	if err != nil {
-		return &model.MetricResponse{}, fmt.Errorf("failed to fetch %s from the store: %w", req.Type, err)
+	if req.Value == nil {
+		return nil, errors.New("incorrect value")
 	}
+	gauge.Set(*req.Value)
+	err = m.store.SetGauge(storeReq, gauge)
+	if err != nil {
+		return &model.MetricsV2{}, fmt.Errorf("failed to save gauge to store: %w", err)
+	}
+
+	return &model.MetricsV2{
+		ID:    req.ID,
+		MType: model.GaugeType,
+		Value: &gauge.Value,
+	}, nil
+}
+
+func (m *MetricService) UpsertCounterValue(req *model.MetricsV2) (*model.MetricsV2, error) {
+	storeReq := &model.MetricRequest{Name: req.ID, Type: req.MType}
+
+	counter, err := m.store.GetCounter(storeReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch counter from the store: %w", err)
+	}
+	if counter == nil {
+		counter = model.NewCounter(req.ID)
+	}
+
+	if req.Delta == nil {
+		return nil, errors.New("incorrect value")
+	}
+	err = counter.Incremet(*req.Delta)
+	if err != nil {
+		return nil, fmt.Errorf("failed to increment metric (%s): %w", req.ID, err)
+	}
+
+	err = m.store.SetCounter(storeReq, counter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save %s value: %w", req.MType.String(), err)
+	}
+
+	return &model.MetricsV2{
+		ID:    req.ID,
+		MType: model.CounterType,
+		Delta: &counter.Value,
+	}, nil
+}
+
+func (m *MetricService) UpsertMetricValue(req *model.MetricsV2) (*model.MetricsV2, error) {
+	switch req.MType {
+	case model.CounterType:
+		return m.UpsertCounterValue(req)
+	case model.GaugeType:
+		return m.UpsertGaugeValue(req)
+	default:
+		return nil, fmt.Errorf("unknown metric type: %s", req.MType.String())
+	}
+}
+
+func (m *MetricService) BuildMetricRequest(req *model.MetricUpdateRequest, mustParseValue bool) (*model.MetricsV2, error) {
+	reqV2 := &model.MetricsV2{
+		ID:    req.Name,
+		MType: req.Type,
+	}
+
 	switch req.Type {
 	case model.CounterType:
-		if counter, ok := metric.(*model.Counter); ok && counter == nil {
-			metric = model.NewCounter(req.Name)
+		v, err := strconv.ParseInt(req.Value, 10, 64)
+		if err != nil && mustParseValue {
+			return nil, fmt.Errorf("failed to parse counter value: %w", err)
 		}
-	case model.GaugeType:
-		if gauge, ok := metric.(*model.Gauge); ok && gauge == nil {
-			metric = model.NewGauge(req.Name)
+		if err != nil {
+			break
 		}
-	}
-
-	err = metric.ParseString(req.Value)
-	if err != nil {
-		return &model.MetricResponse{}, fmt.Errorf("failed to parse %s value: %w", req.Type, err)
-	}
-
-	switch req.Type {
-	case model.CounterType:
-		err = m.store.SetCounter(getReq, metric.(*model.Counter))
+		reqV2.Delta = &v
 	case model.GaugeType:
-		err = m.store.SetGauge(getReq, metric.(*model.Gauge))
-	}
-	if err != nil {
-		return &model.MetricResponse{}, fmt.Errorf("failed to save %s value: %w", req.Type, err)
+		v, err := strconv.ParseFloat(req.Value, 64)
+		if err != nil && mustParseValue {
+			return nil, fmt.Errorf("failed to parse gauge value: %w", err)
+		}
+		if err != nil {
+			break
+		}
+		reqV2.Value = &v
+	default:
+		return nil, fmt.Errorf("unknown metric type: %s", req.Type.String())
 	}
 
-	return &model.MetricResponse{
-		Name:  req.Name,
-		Type:  model.CounterType,
-		Value: metric.StringValue(),
-	}, err
+	return reqV2, nil
 }

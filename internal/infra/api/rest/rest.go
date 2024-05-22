@@ -35,15 +35,19 @@ func ZapLogger(logger *zap.Logger) gin.HandlerFunc {
 }
 
 func NewAPI(metricService *service.MetricService) *API {
-	handler := handlers.NewHandler(metricService)
+	handler_v1 := handlers.NewHandlerV1(metricService)
+	handler_v2 := handlers.NewHandlerV2(metricService)
 
 	srv := gin.Default()
 	srv.Use(ZapLogger(logger.Log))
 	srv.Use(gin.Recovery())
 
-	srv.GET("/", handler.ListHandler)
-	srv.GET("/value/:type/:name", handler.GetHandler)
-	srv.POST("/update/:type/:name/:value", handler.UpdateHandler)
+	srv.GET("/", handler_v1.ListHandler)
+	srv.GET("/value/:type/:name", handler_v1.GetHandler)
+	srv.POST("/update/:type/:name/:value", handler_v1.UpdateHandler)
+
+	srv.POST("/value", handler_v2.GetHandler)
+	srv.POST("/update", handler_v2.UpdateHandler)
 
 	return &API{
 		srv: srv,

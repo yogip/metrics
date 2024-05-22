@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"metrics/internal/core/model"
 	"metrics/internal/core/service"
@@ -12,15 +13,15 @@ import (
 	"go.uber.org/zap"
 )
 
-type Handler struct {
+type HandlerV1 struct {
 	metricService *service.MetricService
 }
 
-func NewHandler(metricService *service.MetricService) *Handler {
-	return &Handler{metricService: metricService}
+func NewHandlerV1(metricService *service.MetricService) *HandlerV1 {
+	return &HandlerV1{metricService: metricService}
 }
 
-func (h *Handler) UpdateHandler(ctx *gin.Context) {
+func (h *HandlerV1) UpdateHandler(ctx *gin.Context) {
 	req := &model.MetricUpdateRequest{}
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
@@ -34,16 +35,23 @@ func (h *Handler) UpdateHandler(ctx *gin.Context) {
 	)
 	log.Debug("Getting update request")
 
-	_, err := h.metricService.SetMetricValue(req)
+	reqV2, err := h.metricService.BuildMetricRequest(req, true)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
-		log.Error("Error setting metric value", zap.Error(err))
+		log.Error("Error parsing metric value", zap.Error(err))
+		return
+	}
+
+	_, err = h.metricService.UpsertMetricValue(reqV2)
+	if err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		log.Error("Metric value update error", zap.Error(err))
 		return
 	}
 }
 
-func (h *Handler) GetHandler(ctx *gin.Context) {
-	req := &model.MetricRequest{}
+func (h *HandlerV1) GetHandler(ctx *gin.Context) {
+	req := &model.MetricUpdateRequest{}
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		logger.Log.Error("Error binding uri", zap.Error(err))
@@ -56,7 +64,14 @@ func (h *Handler) GetHandler(ctx *gin.Context) {
 
 	log.Debug("Getting value for metric")
 
-	metric, err := h.metricService.GetMetric(req)
+	reqV2, err := h.metricService.BuildMetricRequest(req, false)
+	if err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		log.Error("Error converting metric request to V2", zap.Error(err))
+		return
+	}
+
+	metric, err := h.metricService.GetMetric(reqV2)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		logger.Log.Error("Error getting metric", zap.Error(err))
@@ -68,10 +83,14 @@ func (h *Handler) GetHandler(ctx *gin.Context) {
 		return
 	}
 
-	ctx.String(http.StatusOK, metric.Value)
+	if metric.MType == model.CounterType {
+		ctx.String(http.StatusOK, strconv.FormatInt(*metric.Delta, 10))
+	} else {
+		ctx.String(http.StatusOK, strconv.FormatFloat(*metric.Value, 'f', -1, 64))
+	}
 }
 
-func (h *Handler) ListHandler(ctx *gin.Context) {
+func (h *HandlerV1) ListHandler(ctx *gin.Context) {
 	metrics, err := h.metricService.ListMetrics()
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())

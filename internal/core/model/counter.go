@@ -30,8 +30,12 @@ func (c *Counter) StringValue() string {
 	return strconv.FormatInt(c.Value, 10)
 }
 
-func (c *Counter) Incremet(value int64) {
+func (c *Counter) Incremet(value int64) error {
+	if value < 0 {
+		return fmt.Errorf("could not increment Counter to negative value (%d)", value)
+	}
 	c.Value += value
+	return nil
 }
 
 // Set and convert value from sting, return error for wrong type

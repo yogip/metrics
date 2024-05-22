@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,14 +21,19 @@ type HTTPClient struct {
 func NewClient(serverHost string) *HTTPClient {
 	return &HTTPClient{
 		ServerHost:     serverHost,
-		MetricEndpoint: "/update/%s/%s/%s", // POST http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
+		MetricEndpoint: "/update",
 	}
 }
 
 // HTTTP Client to sent metrics to MetricEndpoint
-func (client *HTTPClient) SendMetric(req *model.MetricResponse) error {
-	url := fmt.Sprintf(client.ServerHost+client.MetricEndpoint, req.Type, req.Name, req.Value)
-	resp, err := http.Post(url, "text/plain", nil)
+func (client *HTTPClient) SendMetric(req *model.MetricsV2) error {
+	body, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("error marshalling request body: %w", err)
+	}
+
+	url := fmt.Sprintf(client.ServerHost + client.MetricEndpoint)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("request error: %w", err)
 	}

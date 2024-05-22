@@ -1,7 +1,8 @@
 package transport
 
 import (
-	"fmt"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,124 +13,115 @@ import (
 )
 
 func TestSendMetric(t *testing.T) {
-	tests := []struct {
-		mType model.MetricType
-		name  string
-		value string
-	}{
+	var ten int64 = 10
+	var zero int64 = 0
+	var big int64 = 10000000000000000
+	var minusOne int64 = -1
+	var minusBig int64 = -10000000000000000
+
+	var tenFloat float64 = 10.
+	var zeroFloat float64 = 0.
+	var bigFloat float64 = 10000000000000000.0
+	var nearZeroFloat float64 = 0.000000000000001
+	var minusTenFloat float64 = -10
+	var minusBigFloat float64 = -10000000000000000
+
+	tests := []model.MetricsV2{
 		{
-			mType: model.CounterType,
-			name:  "counter",
-			value: "3",
+			ID:    "counter",
+			MType: model.CounterType,
+			Delta: &ten,
 		},
 		{
-			mType: model.CounterType,
-			name:  "counter_zero",
-			value: "0",
+			ID:    "counter_zero",
+			MType: model.CounterType,
+			Delta: &zero,
 		},
 		{
-			mType: model.CounterType,
-			name:  "counter_negative_zero",
-			value: "-0",
+			ID:    "counter_negative",
+			MType: model.CounterType,
+			Delta: &minusOne,
 		},
 		{
-			mType: model.CounterType,
-			name:  "counter_negative",
-			value: "-1",
+			MType: model.CounterType,
+			ID:    "counter_big_negative",
+			Delta: &minusBig,
 		},
 		{
-			mType: model.CounterType,
-			name:  "counter_big_negative",
-			value: "-10000000000000000",
+			ID:    "counter_big",
+			MType: model.CounterType,
+			Delta: &big,
 		},
 		{
-			mType: model.CounterType,
-			name:  "counter_big",
-			value: "10000000000000000",
+			MType: model.CounterType,
+			ID:    "CaunterCapitalizedName",
+			Delta: &ten,
+		},
+
+		// Gauges
+		{
+			MType: model.GaugeType,
+			ID:    "gauge",
+			Value: &tenFloat,
 		},
 		{
-			mType: model.GaugeType,
-			name:  "gauge",
-			value: "3.0",
+			MType: model.GaugeType,
+			ID:    "gauge_zero",
+			Value: &zeroFloat,
 		},
 		{
-			mType: model.GaugeType,
-			name:  "gauge_with_int",
-			value: "3",
+			MType: model.GaugeType,
+			ID:    "gauge_near_zero",
+			Value: &nearZeroFloat,
 		},
 		{
-			mType: model.GaugeType,
-			name:  "gauge_zero",
-			value: "0",
+			MType: model.GaugeType,
+			ID:    "gauge_negative",
+			Value: &minusTenFloat,
 		},
 		{
-			mType: model.GaugeType,
-			name:  "gauge_zero_2",
-			value: "0.0",
+			MType: model.GaugeType,
+			ID:    "gauge_big_negative",
+			Value: &minusBigFloat,
 		},
 		{
-			mType: model.GaugeType,
-			name:  "gauge_zero_3",
-			value: ".0",
+			MType: model.GaugeType,
+			ID:    "gauge_big",
+			Value: &bigFloat,
 		},
 		{
-			mType: model.GaugeType,
-			name:  "gauge_near_zero",
-			value: "0.0000000000001",
-		},
-		{
-			mType: model.GaugeType,
-			name:  "gauge_negative_zero",
-			value: "-0",
-		},
-		{
-			mType: model.GaugeType,
-			name:  "gauge_negative",
-			value: "-1.01",
-		},
-		{
-			mType: model.GaugeType,
-			name:  "gauge_big_negative",
-			value: "-100000000.1",
-		},
-		{
-			mType: model.GaugeType,
-			name:  "gauge_big",
-			value: "1000000000000000.2",
-		},
-		{
-			mType: model.GaugeType,
-			name:  "GaugeCapitalizedName",
-			value: "12.12",
-		},
-		{
-			mType: model.CounterType,
-			name:  "CaunterCapitalizedName",
-			value: "12",
+			MType: model.GaugeType,
+			ID:    "GaugeCapitalizedName",
+			Value: &tenFloat,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for _, expectedMetric := range tests {
+		t.Run(expectedMetric.ID, func(t *testing.T) {
 			// Create a test server
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// Verify the request URL
-				expectedURL := fmt.Sprintf("/update/%s/%s/%s", test.mType, test.name, test.value)
-				assert.Equal(t, expectedURL, r.URL.String())
+				assert.Equal(t, "/update", r.URL.String())
 
 				// Verify the request method
 				assert.Equal(t, http.MethodPost, r.Method)
+
+				// Verify the request body
+				body, err := io.ReadAll(r.Body)
+				assert.NoError(t, err)
+
+				var acutalMetric model.MetricsV2
+				err = json.Unmarshal(body, &acutalMetric)
+
+				assert.NoError(t, err)
+				assert.Equal(t, expectedMetric, acutalMetric)
 			}))
 			defer server.Close()
 
 			client := NewClient(server.URL)
 
 			// Call the function being tested
-			err := client.SendMetric(&model.MetricResponse{
-				Type:  test.mType,
-				Name:  test.name,
-				Value: test.value,
-			})
+			err := client.SendMetric(&expectedMetric)
 
 			// Verify the result
 			assert.NoError(t, err)

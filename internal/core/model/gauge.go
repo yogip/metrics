@@ -34,12 +34,11 @@ func (g *Gauge) Set(value float64) {
 	g.Value = value
 }
 
-// Set and convert value from sting, return error for wrong type
-func (g *Gauge) ParseString(value string) error {
-	if v, err := strconv.ParseFloat(value, 64); err != nil {
-		return fmt.Errorf("could not set value (%s) to Gauge: %s", value, err)
-	} else {
-		g.Value = v
-	}
-	return nil
-}
+// func (g *Gauge) ParseString(value string) error {
+// 	if v, err := strconv.ParseFloat(value, 64); err != nil {
+// 		return fmt.Errorf("could not set value (%s) to Gauge: %s", value, err)
+// 	} else {
+// 		g.Value = v
+// 	}
+// 	return nil
+// }
