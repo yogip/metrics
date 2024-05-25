@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"metrics/internal/core/service"
 	"metrics/internal/infra/api/rest/handlers"
+	"metrics/internal/infra/api/rest/middlewares"
 	"metrics/internal/logger"
 	"time"
 
@@ -41,6 +42,7 @@ func NewAPI(metricService *service.MetricService) *API {
 	srv := gin.Default()
 	srv.Use(ZapLogger(logger.Log))
 	srv.Use(gin.Recovery())
+	srv.Use(middlewares.GzipMiddleware())
 
 	srv.GET("/", handlerV1.ListHandler)
 	srv.GET("/value/:type/:name", handlerV1.GetHandler)
