@@ -18,12 +18,26 @@ func (g *gzipResponseWriter) Write(data []byte) (int, error) {
 	return g.Writer.Write(data)
 }
 
-func GzipMiddleware() gin.HandlerFunc {
+// type gzipRequestReader struct {
+// gin.
+// Writer *gzip.Writer
+// }
+// Read(p []byte) (n int, err error)
+
+// func (g *gzipRequestReader) Write(data []byte) (int, error) {
+// return g.Writer.Write(data)
+// }
+
+func GzipCompressMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !strings.Contains(
 			c.GetHeader("Accept-Encoding"),
 			"gzip",
 		) {
+			c.Next()
+			return
+		}
+		if c.GetHeader("Content-Type") != "application/json" || c.GetHeader("Content-Type") != "text/html" {
 			c.Next()
 			return
 		}
@@ -40,6 +54,31 @@ func GzipMiddleware() gin.HandlerFunc {
 
 		c.Header("Content-Encoding", "gzip")
 		c.Writer = &gzipResponseWriter{Writer: gz, ResponseWriter: c.Writer}
+		c.Next()
+	}
+}
+
+func GzipDecompressMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !strings.Contains(
+			c.GetHeader("Content-Encoding"),
+			"gzip",
+		) {
+			c.Next()
+			return
+		}
+
+		gz, err := gzip.NewReader(c.Request.Body)
+		if err != nil {
+			c.String(
+				http.StatusInternalServerError,
+				fmt.Errorf("error creating gzip reader: %w", err).Error(),
+			)
+			return
+		}
+		defer gz.Close()
+
+		c.Request.Body = gz
 		c.Next()
 	}
 }

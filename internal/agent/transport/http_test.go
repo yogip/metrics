@@ -1,14 +1,13 @@
 package transport
 
 import (
-	"encoding/json"
-	"io"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"metrics/internal/core/model"
+	"metrics/internal/infra/api/rest/middlewares"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -99,26 +98,18 @@ func TestSendMetric(t *testing.T) {
 	for _, expectedMetric := range tests {
 		t.Run(expectedMetric.ID, func(t *testing.T) {
 			// Create a test server
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				// Verify the request URL
-				assert.Equal(t, "/update", r.URL.String())
-
-				// Verify the request method
-				assert.Equal(t, http.MethodPost, r.Method)
-
-				// Verify the request body
-				body, err := io.ReadAll(r.Body)
+			srv := gin.New()
+			srv.Use(middlewares.GzipDecompressMiddleware())
+			srv.POST("/update", func(c *gin.Context) {
+				var actualMetric model.MetricsV2
+				err := c.BindJSON(&actualMetric)
 				assert.NoError(t, err)
 
-				var acutalMetric model.MetricsV2
-				err = json.Unmarshal(body, &acutalMetric)
+				assert.Equal(t, expectedMetric, actualMetric)
+			})
+			testSrv := httptest.NewServer(srv)
 
-				assert.NoError(t, err)
-				assert.Equal(t, expectedMetric, acutalMetric)
-			}))
-			defer server.Close()
-
-			client := NewClient(server.URL)
+			client := NewClient(testSrv.URL)
 
 			// Call the function being tested
 			err := client.SendMetric(&expectedMetric)
