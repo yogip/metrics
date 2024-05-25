@@ -42,8 +42,8 @@ func NewAPI(metricService *service.MetricService) *API {
 	srv := gin.Default()
 	srv.Use(ZapLogger(logger.Log))
 	srv.Use(gin.Recovery())
-	srv.Use(middlewares.GzipCompressMiddleware())
 	srv.Use(middlewares.GzipDecompressMiddleware())
+	srv.Use(middlewares.GzipCompressMiddleware())
 
 	srv.GET("/", handlerV1.ListHandler)
 	srv.GET("/value/:type/:name", handlerV1.GetHandler)

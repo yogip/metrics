@@ -18,16 +18,6 @@ func (g *gzipResponseWriter) Write(data []byte) (int, error) {
 	return g.Writer.Write(data)
 }
 
-// type gzipRequestReader struct {
-// gin.
-// Writer *gzip.Writer
-// }
-// Read(p []byte) (n int, err error)
-
-// func (g *gzipRequestReader) Write(data []byte) (int, error) {
-// return g.Writer.Write(data)
-// }
-
 func GzipCompressMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if !strings.Contains(
@@ -37,7 +27,7 @@ func GzipCompressMiddleware() gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		if c.GetHeader("Content-Type") != "application/json" || c.GetHeader("Content-Type") != "text/html" {
+		if c.GetHeader("Content-Type") != "application/json" && c.GetHeader("Content-Type") != "text/html" {
 			c.Next()
 			return
 		}
