@@ -27,7 +27,16 @@ func GzipCompressMiddleware() gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		if c.GetHeader("Content-Type") != "application/json" && c.GetHeader("Content-Type") != "text/html" {
+		isValidContentType := false
+		validContentTypes := []string{"application/json", "text/html", "html/text"}
+		for _, validContentType := range validContentTypes {
+			if c.GetHeader("Content-Type") == validContentType {
+				isValidContentType = true
+				break
+			}
+		}
+
+		if !isValidContentType {
 			c.Next()
 			return
 		}
