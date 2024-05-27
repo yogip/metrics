@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"metrics/internal/core/config"
 	"metrics/internal/core/model"
 	"metrics/internal/core/service"
 	"metrics/internal/infra/store/memory"
@@ -45,7 +46,13 @@ func TestUpdateHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.metric.ID, func(t *testing.T) {
 			// Создаем новый обработчик с поддельным сервисом
-			store := memory.NewStore()
+			store, err := memory.NewStore(&config.StorageConfig{
+				StoreIntreval:   1000,
+				FileStoragePath: "/tmp/storage_dump.json",
+				Restore:         false,
+			})
+			assert.NoError(t, err)
+
 			service := service.NewMetricService(store)
 			handler := NewHandlerV2(service)
 
@@ -108,7 +115,12 @@ func TestUpdateRequestsWithTheSameStore(t *testing.T) {
 	}
 
 	// один стор для всех запросов, результат будет накопительный
-	store := memory.NewStore()
+	store, err := memory.NewStore(&config.StorageConfig{
+		StoreIntreval:   1000,
+		FileStoragePath: "/tmp/storage_dump.json",
+		Restore:         false,
+	})
+	assert.NoError(t, err)
 	for _, tt := range tests {
 		// Создаем новый обработчик с поддельным сервисом
 		service := service.NewMetricService(store)
@@ -162,7 +174,12 @@ func TestGetHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.metric.ID, func(t *testing.T) {
 			// Создаем новый обработчик с поддельным сервисом
-			store := memory.NewStore()
+			store, err := memory.NewStore(&config.StorageConfig{
+				StoreIntreval:   1000,
+				FileStoragePath: "/tmp/storage_dump.json",
+				Restore:         false,
+			})
+			assert.NoError(t, err)
 			store.SetCounter(
 				&model.MetricRequest{Name: tt.metric.ID, Type: tt.metric.MType},
 				&model.Counter{Name: tt.metric.ID, Value: *tt.metric.Delta},

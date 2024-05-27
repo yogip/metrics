@@ -30,17 +30,21 @@ func main() {
 }
 
 func run(cfg *config.Config) error {
-	store, err := store.NewStore()
+	store, err := store.NewStore(&cfg.Storage)
 	if err != nil {
 		return fmt.Errorf("failed to initialize a store: %w", err)
 	}
+
 	service := service.NewMetricService(store)
 	logger.Log.Info("Service initialized")
 	api := rest.NewAPI(service)
 
 	logger.Log.Info("Start Server at:", zap.String("addres", cfg.Server.Address))
-	if err := api.Run(cfg.Server.Address); err != nil {
-		return fmt.Errorf("server has failed: %w", err)
+	err = api.Run(cfg.Server.Address)
+	if err != nil {
+		log.Println(err)
 	}
+	store.Close()
+	logger.Log.Info("Server exiting")
 	return nil
 }

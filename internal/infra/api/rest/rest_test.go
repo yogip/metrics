@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"metrics/internal/core/config"
 	"metrics/internal/core/model"
 	"metrics/internal/core/service"
 	"metrics/internal/infra/store/memory"
@@ -282,7 +283,12 @@ func TestUpdateHandler(t *testing.T) {
 			},
 		},
 	}
-	store := memory.NewStore()
+	store, err := memory.NewStore(&config.StorageConfig{
+		StoreIntreval:   1000,
+		FileStoragePath: "/tmp/storage_dump.json",
+		Restore:         false,
+	})
+	assert.NoError(t, err)
 	service := service.NewMetricService(store)
 
 	api := NewAPI(service)

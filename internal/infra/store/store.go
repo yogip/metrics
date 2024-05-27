@@ -1,6 +1,7 @@
 package store
 
 import (
+	"metrics/internal/core/config"
 	"metrics/internal/core/model"
 	"metrics/internal/infra/store/memory"
 )
@@ -12,8 +13,9 @@ type Store interface {
 	GetCounter(req *model.MetricRequest) (*model.Counter, error)
 	SetCounter(req *model.MetricRequest, counter *model.Counter) error
 	ListCounter() ([]*model.Counter, error)
+	Close()
 }
 
-func NewStore() (Store, error) {
-	return memory.NewStore(), nil
+func NewStore(cfg *config.StorageConfig) (Store, error) {
+	return memory.NewStore(cfg)
 }

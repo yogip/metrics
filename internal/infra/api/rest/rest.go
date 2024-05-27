@@ -8,6 +8,7 @@ import (
 	"metrics/internal/logger"
 	"time"
 
+	"github.com/fvbock/endless"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -58,5 +59,5 @@ func NewAPI(metricService *service.MetricService) *API {
 }
 
 func (app *API) Run(runAddr string) error {
-	return app.srv.Run(runAddr)
+	return endless.ListenAndServe(runAddr, app.srv)
 }

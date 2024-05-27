@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"metrics/internal/core/config"
 	"metrics/internal/core/model"
 )
 
@@ -26,7 +27,12 @@ func TestMemStorageSetAndGetCounter(t *testing.T) {
 		},
 	}
 
-	repo := NewStore()
+	repo, err := NewStore(&config.StorageConfig{
+		StoreIntreval:   1000,
+		FileStoragePath: "/tmp/storage_dump.json",
+		Restore:         false,
+	})
+	assert.NoError(t, err)
 
 	for _, test := range tests {
 		req := &model.MetricRequest{Name: test.name, Type: model.CounterType}
