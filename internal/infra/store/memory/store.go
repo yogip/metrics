@@ -3,7 +3,7 @@ package memory
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"metrics/internal/core/config"
 	"metrics/internal/core/model"
 	"metrics/internal/logger"
@@ -18,8 +18,8 @@ type Store struct {
 	mux     *sync.RWMutex
 	quit    chan bool
 	config  *config.StorageConfig
-	gauge   map[string]*model.Gauge   `json:"gauge"`
-	counter map[string]*model.Counter `json:"counter"`
+	gauge   map[string]*model.Gauge
+	counter map[string]*model.Counter
 }
 
 func NewStore(cfg *config.StorageConfig) (*Store, error) {
@@ -160,7 +160,7 @@ func (s *Store) loadDump() error {
 	}
 	defer file.Close()
 
-	data, err := ioutil.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
 		logger.Log.Error("Load Dump DB from file error", zap.Error(err))
 		return err
