@@ -1,20 +1,21 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"metrics/internal/core/service"
 	"metrics/internal/infra/api/rest/handlers"
 	"metrics/internal/infra/api/rest/middlewares"
 	"metrics/internal/logger"
+	"net/http"
 	"time"
 
-	"github.com/fvbock/endless"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
 type API struct {
-	srv *gin.Engine
+	srv *http.Server
 }
 
 func ZapLogger(logger *zap.Logger) gin.HandlerFunc {
@@ -40,24 +41,31 @@ func NewAPI(metricService *service.MetricService) *API {
 	handlerV1 := handlers.NewHandlerV1(metricService)
 	handlerV2 := handlers.NewHandlerV2(metricService)
 
-	srv := gin.Default()
-	srv.Use(ZapLogger(logger.Log))
-	srv.Use(gin.Recovery())
-	srv.Use(middlewares.GzipDecompressMiddleware())
-	srv.Use(middlewares.GzipCompressMiddleware())
+	router := gin.Default()
+	router.Use(ZapLogger(logger.Log))
+	router.Use(gin.Recovery())
+	router.Use(middlewares.GzipDecompressMiddleware())
+	router.Use(middlewares.GzipCompressMiddleware())
 
-	srv.GET("/", handlerV1.ListHandler)
-	srv.GET("/value/:type/:name", handlerV1.GetHandler)
-	srv.POST("/update/:type/:name/:value", handlerV1.UpdateHandler)
+	router.GET("/", handlerV1.ListHandler)
+	router.GET("/value/:type/:name", handlerV1.GetHandler)
+	router.POST("/update/:type/:name/:value", handlerV1.UpdateHandler)
 
-	srv.POST("/value", handlerV2.GetHandler)
-	srv.POST("/update", handlerV2.UpdateHandler)
+	router.POST("/value", handlerV2.GetHandler)
+	router.POST("/update", handlerV2.UpdateHandler)
 
+	srv := &http.Server{Handler: router}
 	return &API{
 		srv: srv,
 	}
 }
 
 func (app *API) Run(runAddr string) error {
-	return endless.ListenAndServe(runAddr, app.srv)
+	logger.Log.Info("Run API server", zap.String("Addres", runAddr))
+	app.srv.Addr = runAddr
+	return app.srv.ListenAndServe()
+}
+
+func (api *API) Shutdown(ctx context.Context) error {
+	return api.srv.Shutdown(ctx)
 }

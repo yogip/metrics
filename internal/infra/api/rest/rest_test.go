@@ -299,7 +299,7 @@ func TestUpdateHandler(t *testing.T) {
 			request := httptest.NewRequest(test.method, url, nil)
 
 			w := httptest.NewRecorder()
-			api.srv.ServeHTTP(w, request)
+			api.srv.Handler.ServeHTTP(w, request)
 
 			assert.Equal(t, test.want.code, w.Code)
 			assert.Equal(t, test.want.response, w.Body.String())
