@@ -60,10 +60,10 @@ func NewAPI(metricService *service.MetricService) *API {
 	}
 }
 
-func (app *API) Run(runAddr string) error {
+func (api *API) Run(runAddr string) error {
 	logger.Log.Info("Run API server", zap.String("Addres", runAddr))
-	app.srv.Addr = runAddr
-	return app.srv.ListenAndServe()
+	api.srv.Addr = runAddr
+	return api.srv.ListenAndServe()
 }
 
 func (api *API) Shutdown(ctx context.Context) error {
