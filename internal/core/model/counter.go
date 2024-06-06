@@ -30,7 +30,7 @@ func (c *Counter) StringValue() string {
 	return strconv.FormatInt(c.Value, 10)
 }
 
-func (c *Counter) Incremet(value int64) error {
+func (c *Counter) Increment(value int64) error {
 	if value < 0 {
 		return fmt.Errorf("could not increment Counter to negative value (%d)", value)
 	}

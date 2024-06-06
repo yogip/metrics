@@ -21,7 +21,7 @@ func TestCounterIncrement(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		err := c.Incremet(tc.Increment)
+		err := c.Increment(tc.Increment)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.Expected, c.Value)
 	}
@@ -31,7 +31,7 @@ func TestCounterSetFailed(t *testing.T) {
 	c := &Counter{Name: "test", Value: 0}
 
 	for _, v := range []int64{-10, -15, -5} {
-		err := c.Incremet(v)
+		err := c.Increment(v)
 		assert.Error(t, err)
 	}
 }

@@ -31,12 +31,12 @@ func NewStore(cfg *config.StorageConfig) (*Store, error) {
 		counter: make(map[string]*model.Counter),
 	}
 
-	if cfg.Restore {
+	if cfg.Restore && cfg.FileStoragePath != "" {
 		if err := store.loadDump(); err != nil {
 			return nil, err
 		}
 	}
-	if cfg.StoreIntreval > 0 {
+	if cfg.StoreIntreval > 0 && cfg.FileStoragePath != "" {
 		go store.dumpPeriodicly()
 	}
 	logger.Log.Info(
@@ -50,7 +50,7 @@ func NewStore(cfg *config.StorageConfig) (*Store, error) {
 
 func (s *Store) Close() {
 	logger.Log.Debug("Send close event to chanel")
-	s.quit <- true
+	close(s.quit)
 }
 
 func (s *Store) GetGauge(req *model.MetricRequest) (*model.Gauge, error) {
@@ -69,7 +69,7 @@ func (s *Store) SetGauge(req *model.MetricRequest, gauge *model.Gauge) error {
 	defer s.mux.Unlock()
 
 	s.gauge[req.ID()] = gauge
-	if s.config.StoreIntreval == 0 {
+	if s.config.StoreIntreval == 0 && s.config.FileStoragePath != "" {
 		s.saveDump()
 	}
 	return nil
@@ -91,7 +91,7 @@ func (s *Store) SetCounter(req *model.MetricRequest, counter *model.Counter) err
 	defer s.mux.Unlock()
 
 	s.counter[req.ID()] = counter
-	if s.config.StoreIntreval == 0 {
+	if s.config.StoreIntreval == 0 && s.config.FileStoragePath != "" {
 		s.saveDump()
 	}
 	return nil

@@ -153,7 +153,7 @@ func (m *MetricService) UpsertCounterValue(req *model.MetricsV2) (*model.Metrics
 	if req.Delta == nil {
 		return nil, errors.New("incorrect value")
 	}
-	err = counter.Incremet(*req.Delta)
+	err = counter.Increment(*req.Delta)
 	if err != nil {
 		return nil, fmt.Errorf("failed to increment metric (%s): %w", req.ID, err)
 	}

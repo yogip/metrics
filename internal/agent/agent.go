@@ -24,7 +24,7 @@ func pollFromRuntime() {
 	runtime.ReadMemStats(&rtm)
 
 	// Counters metric
-	metrics.PollCountCounter.Incremet(1)
+	metrics.PollCountCounter.Increment(1)
 
 	// Gauge metrics
 	metrics.RandomValue.Set(r.Float64())
