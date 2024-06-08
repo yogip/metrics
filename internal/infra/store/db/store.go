@@ -78,15 +78,21 @@ func (s *Store) ListGauge(ctx context.Context) ([]*model.Gauge, error) {
 		return nil, fmt.Errorf("error reading gauge: %w", err)
 	}
 	defer rows.Close()
+	rows.Err()
 
 	for rows.Next() {
 		var g model.Gauge
 		err := rows.Scan(&g.Name, &g.Value)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error reading gauge row: %w", err)
 		}
 
 		gauges = append(gauges, &g)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("error scaning gauges: %w", err)
 	}
 
 	return gauges, nil
@@ -141,10 +147,15 @@ func (s *Store) ListCounter(ctx context.Context) ([]*model.Counter, error) {
 		var c model.Counter
 		err := rows.Scan(&c.Name, &c.Value)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error reading counter row: %w", err)
 		}
 
 		counters = append(counters, &c)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf("error scaning counters: %w", err)
 	}
 
 	return counters, nil
