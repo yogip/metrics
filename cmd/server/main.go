@@ -11,13 +11,15 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"go.uber.org/zap"
+
 	"metrics/internal/core/config"
 	"metrics/internal/core/service"
 	"metrics/internal/infra/api/rest"
 	"metrics/internal/infra/store"
+	dbStorage "metrics/internal/infra/store/db"
 	"metrics/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 func main() {
@@ -43,9 +45,15 @@ func run(cfg *config.Config) error {
 		return fmt.Errorf("failed to initialize a store: %w", err)
 	}
 
-	service := service.NewMetricService(store)
+	dbStore, err := dbStorage.NewStore(&cfg.Storage)
+	if err != nil {
+		return fmt.Errorf("failed to initialize a store: %w", err)
+	}
+
+	metricService := service.NewMetricService(store)
+	systemService := service.NewSystemService(dbStore)
 	logger.Log.Info("Service initialized")
-	api := rest.NewAPI(service)
+	api := rest.NewAPI(metricService, systemService)
 
 	// https://github.com/gin-gonic/gin/blob/master/docs/doc.md#manually
 	// Initializing the server in a goroutine so that
@@ -76,6 +84,7 @@ func run(cfg *config.Config) error {
 	}
 
 	store.Close()
+	dbStore.Close()
 	logger.Log.Info("Server exiting")
 	return nil
 }

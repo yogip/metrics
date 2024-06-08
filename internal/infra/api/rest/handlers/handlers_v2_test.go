@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -201,7 +200,6 @@ func TestGetHandler(t *testing.T) {
 
 			// Проверяем результаты
 			assert.Equal(t, tt.want.code, w.Code)
-			fmt.Println("-------", w.Body.String())
 			assert.JSONEq(t, tt.want.response, w.Body.String())
 		})
 	}

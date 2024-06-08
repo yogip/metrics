@@ -40,7 +40,7 @@ func NewStore(cfg *config.StorageConfig) (*Store, error) {
 		go store.dumpPeriodicly()
 	}
 	logger.Log.Info(
-		"Store initialized",
+		"Memory Store initialized",
 		zap.String("FileStoragePath", cfg.FileStoragePath),
 		zap.Int64("StoreIntreval", cfg.StoreIntreval),
 		zap.Bool("Restore", cfg.Restore),
