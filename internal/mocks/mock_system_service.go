@@ -10,9 +10,9 @@
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
-	gin "github.com/gin-gonic/gin"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -40,7 +40,7 @@ func (m *MockPinger) EXPECT() *MockPingerMockRecorder {
 }
 
 // Ping mocks base method.
-func (m *MockPinger) Ping(arg0 *gin.Context) error {
+func (m *MockPinger) Ping(arg0 context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Ping", arg0)
 	ret0, _ := ret[0].(error)

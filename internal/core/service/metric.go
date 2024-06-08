@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -9,12 +10,12 @@ import (
 )
 
 type Store interface {
-	GetGauge(req *model.MetricRequest) (*model.Gauge, error)
-	SetGauge(req *model.MetricRequest, gauge *model.Gauge) error
-	ListGauge() ([]*model.Gauge, error)
-	GetCounter(req *model.MetricRequest) (*model.Counter, error)
-	SetCounter(req *model.MetricRequest, counter *model.Counter) error
-	ListCounter() ([]*model.Counter, error)
+	GetGauge(ctx context.Context, req *model.MetricRequest) (*model.Gauge, error)
+	SetGauge(ctx context.Context, gauge *model.Gauge) error
+	ListGauge(ctx context.Context) ([]*model.Gauge, error)
+	GetCounter(ctx context.Context, req *model.MetricRequest) (*model.Counter, error)
+	SetCounter(ctx context.Context, counter *model.Counter) error
+	ListCounter(ctx context.Context) ([]*model.Counter, error)
 }
 
 type Metric interface {
@@ -32,9 +33,9 @@ func NewMetricService(store Store) *MetricService {
 	}
 }
 
-func (m *MetricService) ListMetrics() (*model.ListMetricResponse, error) {
+func (m *MetricService) ListMetrics(ctx context.Context) (*model.ListMetricResponse, error) {
 	result := model.ListMetricResponse{Metrics: []*model.MetricResponse{}}
-	gagues, err := m.store.ListGauge()
+	gagues, err := m.store.ListGauge(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list gauges: %w", err)
 	}
@@ -49,7 +50,7 @@ func (m *MetricService) ListMetrics() (*model.ListMetricResponse, error) {
 		)
 	}
 
-	counters, err := m.store.ListCounter()
+	counters, err := m.store.ListCounter(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list gauges: %w", err)
 	}
@@ -67,10 +68,10 @@ func (m *MetricService) ListMetrics() (*model.ListMetricResponse, error) {
 	return &result, nil
 }
 
-func (m *MetricService) GetCounter(req *model.MetricsV2) (*model.MetricsV2, error) {
+func (m *MetricService) GetCounter(ctx context.Context, req *model.MetricsV2) (*model.MetricsV2, error) {
 	storeReq := &model.MetricRequest{Name: req.ID, Type: req.MType}
 
-	counter, err := m.store.GetCounter(storeReq)
+	counter, err := m.store.GetCounter(ctx, storeReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch counter from the store: %w", err)
 	}
@@ -84,10 +85,10 @@ func (m *MetricService) GetCounter(req *model.MetricsV2) (*model.MetricsV2, erro
 	}, nil
 }
 
-func (m *MetricService) GetGauge(req *model.MetricsV2) (*model.MetricsV2, error) {
+func (m *MetricService) GetGauge(ctx context.Context, req *model.MetricsV2) (*model.MetricsV2, error) {
 	storeReq := &model.MetricRequest{Name: req.ID, Type: req.MType}
 
-	gauge, err := m.store.GetGauge(storeReq)
+	gauge, err := m.store.GetGauge(ctx, storeReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch cougauge from the store: %w", err)
 	}
@@ -101,21 +102,21 @@ func (m *MetricService) GetGauge(req *model.MetricsV2) (*model.MetricsV2, error)
 	}, nil
 }
 
-func (m *MetricService) GetMetric(req *model.MetricsV2) (*model.MetricsV2, error) {
+func (m *MetricService) GetMetric(ctx context.Context, req *model.MetricsV2) (*model.MetricsV2, error) {
 	switch req.MType {
 	case model.CounterType:
-		return m.GetCounter(req)
+		return m.GetCounter(ctx, req)
 	case model.GaugeType:
-		return m.GetGauge(req)
+		return m.GetGauge(ctx, req)
 	default:
 		return nil, fmt.Errorf("unknown metric type: %s", req.MType)
 	}
 }
 
-func (m *MetricService) UpsertGaugeValue(req *model.MetricsV2) (*model.MetricsV2, error) {
+func (m *MetricService) UpsertGaugeValue(ctx context.Context, req *model.MetricsV2) (*model.MetricsV2, error) {
 	storeReq := &model.MetricRequest{Name: req.ID, Type: req.MType}
 
-	gauge, err := m.store.GetGauge(storeReq)
+	gauge, err := m.store.GetGauge(ctx, storeReq)
 	if err != nil {
 		return &model.MetricsV2{}, fmt.Errorf("failed to fetch %s from the store: %w", req.MType.String(), err)
 	}
@@ -127,7 +128,7 @@ func (m *MetricService) UpsertGaugeValue(req *model.MetricsV2) (*model.MetricsV2
 		return nil, errors.New("incorrect value")
 	}
 	gauge.Set(*req.Value)
-	err = m.store.SetGauge(storeReq, gauge)
+	err = m.store.SetGauge(ctx, gauge)
 	if err != nil {
 		return &model.MetricsV2{}, fmt.Errorf("failed to save gauge to store: %w", err)
 	}
@@ -139,10 +140,10 @@ func (m *MetricService) UpsertGaugeValue(req *model.MetricsV2) (*model.MetricsV2
 	}, nil
 }
 
-func (m *MetricService) UpsertCounterValue(req *model.MetricsV2) (*model.MetricsV2, error) {
+func (m *MetricService) UpsertCounterValue(ctx context.Context, req *model.MetricsV2) (*model.MetricsV2, error) {
 	storeReq := &model.MetricRequest{Name: req.ID, Type: req.MType}
 
-	counter, err := m.store.GetCounter(storeReq)
+	counter, err := m.store.GetCounter(ctx, storeReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch counter from the store: %w", err)
 	}
@@ -158,7 +159,7 @@ func (m *MetricService) UpsertCounterValue(req *model.MetricsV2) (*model.Metrics
 		return nil, fmt.Errorf("failed to increment metric (%s): %w", req.ID, err)
 	}
 
-	err = m.store.SetCounter(storeReq, counter)
+	err = m.store.SetCounter(ctx, counter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save %s value: %w", req.MType.String(), err)
 	}
@@ -170,12 +171,12 @@ func (m *MetricService) UpsertCounterValue(req *model.MetricsV2) (*model.Metrics
 	}, nil
 }
 
-func (m *MetricService) UpsertMetricValue(req *model.MetricsV2) (*model.MetricsV2, error) {
+func (m *MetricService) UpsertMetricValue(ctx context.Context, req *model.MetricsV2) (*model.MetricsV2, error) {
 	switch req.MType {
 	case model.CounterType:
-		return m.UpsertCounterValue(req)
+		return m.UpsertCounterValue(ctx, req)
 	case model.GaugeType:
-		return m.UpsertGaugeValue(req)
+		return m.UpsertGaugeValue(ctx, req)
 	default:
 		return nil, fmt.Errorf("unknown metric type: %s", req.MType.String())
 	}

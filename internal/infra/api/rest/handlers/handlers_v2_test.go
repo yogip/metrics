@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -179,10 +180,7 @@ func TestGetHandler(t *testing.T) {
 				Restore:         false,
 			})
 			assert.NoError(t, err)
-			store.SetCounter(
-				&model.MetricRequest{Name: tt.metric.ID, Type: tt.metric.MType},
-				&model.Counter{Name: tt.metric.ID, Value: *tt.metric.Delta},
-			)
+			store.SetCounter(context.Background(), &model.Counter{Name: tt.metric.ID, Value: *tt.metric.Delta})
 			service := service.NewMetricService(store)
 			handler := NewHandlerV2(service)
 

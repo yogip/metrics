@@ -1,7 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS counter(
-   name VARCHAR(255) PRIMARY KEY,
+   id VARCHAR(255) PRIMARY KEY,
    value BIGINT NOT NULL
 );
 -- +goose StatementEnd

@@ -18,7 +18,6 @@ import (
 	"metrics/internal/core/service"
 	"metrics/internal/infra/api/rest"
 	"metrics/internal/infra/store"
-	dbStorage "metrics/internal/infra/store/db"
 	"metrics/internal/logger"
 	"metrics/migrations"
 )
@@ -53,14 +52,10 @@ func run(cfg *config.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize a store: %w", err)
 	}
-
-	dbStore, err := dbStorage.NewStore(&cfg.Storage)
-	if err != nil {
-		return fmt.Errorf("failed to initialize a store: %w", err)
-	}
+	defer store.Close()
 
 	metricService := service.NewMetricService(store)
-	systemService := service.NewSystemService(dbStore)
+	systemService := service.NewSystemService(store)
 	logger.Log.Info("Service initialized")
 	api := rest.NewAPI(metricService, systemService)
 
@@ -92,8 +87,6 @@ func run(cfg *config.Config) error {
 		log.Fatal("Server forced to shutdown:", err)
 	}
 
-	store.Close()
-	dbStore.Close()
 	logger.Log.Info("Server exiting")
 	return nil
 }

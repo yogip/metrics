@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,10 +36,8 @@ func TestMemStorageSetAndGetCounter(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, test := range tests {
-		req := &model.MetricRequest{Name: test.name, Type: model.CounterType}
-
 		if test.valueExist {
-			err := repo.SetCounter(req, test.value)
+			err := repo.SetCounter(context.Background(), test.value)
 			assert.NoError(t, err)
 		}
 	}
@@ -47,7 +46,7 @@ func TestMemStorageSetAndGetCounter(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			req := &model.MetricRequest{Name: test.name, Type: model.CounterType}
 
-			counter, err := repo.GetCounter(req)
+			counter, err := repo.GetCounter(context.Background(), req)
 			assert.NoError(t, err)
 			assert.Equal(t, test.valueExist, counter != nil)
 

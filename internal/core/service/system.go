@@ -1,15 +1,19 @@
 package service
 
-import "github.com/gin-gonic/gin"
+import "context"
 
 type Pinger interface {
-	Ping(ctx *gin.Context) error
+	Ping(ctx context.Context) error
 }
 
 type SystemService struct {
-	Pinger
+	store Pinger
 }
 
 func NewSystemService(store Pinger) *SystemService {
-	return &SystemService{store}
+	return &SystemService{store: store}
+}
+
+func (s *SystemService) Ping(ctx context.Context) error {
+	return s.store.Ping(ctx)
 }
