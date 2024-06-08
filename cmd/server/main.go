@@ -20,6 +20,7 @@ import (
 	"metrics/internal/infra/store"
 	dbStorage "metrics/internal/infra/store/db"
 	"metrics/internal/logger"
+	"metrics/migrations"
 )
 
 func main() {
@@ -33,6 +34,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if cfg.Storage.DatabaseDSN != "" {
+		err := migrations.RunMigration(cfg)
+		if err != nil {
+			logger.Log.Fatal("Making migration error", zap.String("error", err.Error()))
+		}
+	}
+
 	if err := run(cfg); err != nil {
 		logger.Log.Fatal("Running server Error", zap.String("error", err.Error()))
 	}
@@ -40,6 +48,7 @@ func main() {
 
 func run(cfg *config.Config) error {
 	ctx := context.Background()
+
 	store, err := store.NewStore(&cfg.Storage)
 	if err != nil {
 		return fmt.Errorf("failed to initialize a store: %w", err)
