@@ -6,6 +6,7 @@ import (
 
 var PollCountCounter = Counter{model.Counter{Name: "PollCount"}}
 
+var RandomValue = Gauge{model.Gauge{Name: "RandomValue"}}
 var AllocGauge = Gauge{model.Gauge{Name: "Alloc"}}
 var BuckHashSysGauge = Gauge{model.Gauge{Name: "BuckHashSys"}}
 var FreesGauge = Gauge{model.Gauge{Name: "Frees"}}
@@ -36,6 +37,7 @@ var TotalAllocGauge = Gauge{model.Gauge{Name: "TotalAlloc"}}
 
 var AllMetrics []Metric = []Metric{
 	&PollCountCounter,
+	&RandomValue,
 	&AllocGauge,
 	&BuckHashSysGauge,
 	&FreesGauge,

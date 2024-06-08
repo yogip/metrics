@@ -1,0 +1,18 @@
+version: '3.5'
+
+services:
+  postgres:
+    container_name: postgres-metrics
+    image: postgres:16.3-alpine
+    environment:
+      POSTGRES_USER: username
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: metrics
+      PGDATA: /data/postgres
+    volumes:
+       - postgres:/data/postgres
+    ports:
+      - "45432:5432"
+
+volumes:
+    postgres:

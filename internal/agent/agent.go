@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"runtime"
@@ -11,17 +11,23 @@ import (
 	"metrics/internal/agent/config"
 	"metrics/internal/agent/metrics"
 	"metrics/internal/agent/transport"
+	"metrics/internal/logger"
+
+	"go.uber.org/zap"
 )
 
 func pollFromRuntime() {
-	log.Println("Polling metrics")
+	logger.Log.Debug("Polling metrics")
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
 
 	// Counters metric
-	metrics.PollCountCounter.Incremet(1)
+	metrics.PollCountCounter.Increment(1)
 
 	// Gauge metrics
+	metrics.RandomValue.Set(r.Float64())
 	metrics.AllocGauge.Set(float64(rtm.Alloc))
 	metrics.BuckHashSysGauge.Set(float64(rtm.BuckHashSys))
 	metrics.FreesGauge.Set(float64(rtm.Frees))
@@ -52,18 +58,22 @@ func pollFromRuntime() {
 }
 
 func reportMetrics(client metrics.Transporter) {
-	log.Println("Reporting all metrics")
+	logger.Log.Debug("Reporting all metrics")
 	for _, metric := range metrics.AllMetrics {
 		err := metric.Send(client)
 		if err != nil {
-			log.Printf("sending metric error: %s", err)
+			logger.Log.Error("sending metric error", zap.String("error", err.Error()))
 		}
 	}
 }
 
 func Run(config *config.AgentConfig) {
 	pollTicker := time.NewTicker(time.Duration(config.PollInterval) * time.Second)
+	defer pollTicker.Stop()
+
 	reportTicker := time.NewTicker(time.Duration(config.ReportInterval) * time.Second)
+	defer reportTicker.Stop()
+
 	client := transport.NewClient(config.ServerAddresPort)
 
 	quit := make(chan os.Signal, 1)
@@ -71,7 +81,7 @@ func Run(config *config.AgentConfig) {
 	for {
 		select {
 		case <-quit:
-			log.Println("Received Ctrl+C, stopping...")
+			logger.Log.Info("Received Ctrl+C, stopping...")
 			return
 		case <-pollTicker.C:
 			pollFromRuntime()
