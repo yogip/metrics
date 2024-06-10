@@ -10,8 +10,10 @@ import (
 	"metrics/internal/core/model"
 	"metrics/internal/core/service"
 	"metrics/internal/infra/store/memory"
+	"metrics/internal/mocks"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestUpdateHandler(t *testing.T) {
@@ -289,9 +291,15 @@ func TestUpdateHandler(t *testing.T) {
 		Restore:         false,
 	})
 	assert.NoError(t, err)
-	service := service.NewMetricService(store)
+	metricService := service.NewMetricService(store)
 
-	api := NewAPI(service)
+	ctrl := gomock.NewController(t)
+	dbMockStore := mocks.NewMockPinger(ctrl)
+	// dbMockStore.EXPECT().Ping(context.Background()).Return(nil)
+
+	systemService := service.NewSystemService(dbMockStore)
+
+	api := NewAPI(metricService, systemService)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

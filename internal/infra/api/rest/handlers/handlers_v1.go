@@ -42,7 +42,7 @@ func (h *HandlerV1) UpdateHandler(ctx *gin.Context) {
 		return
 	}
 
-	_, err = h.metricService.UpsertMetricValue(reqV2)
+	_, err = h.metricService.UpsertMetricValue(ctx, reqV2)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		log.Error("Metric value update error", zap.Error(err))
@@ -71,7 +71,7 @@ func (h *HandlerV1) GetHandler(ctx *gin.Context) {
 		return
 	}
 
-	metric, err := h.metricService.GetMetric(reqV2)
+	metric, err := h.metricService.GetMetric(ctx, reqV2)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		logger.Log.Error("Error getting metric", zap.Error(err))
@@ -91,7 +91,7 @@ func (h *HandlerV1) GetHandler(ctx *gin.Context) {
 }
 
 func (h *HandlerV1) ListHandler(ctx *gin.Context) {
-	metrics, err := h.metricService.ListMetrics()
+	metrics, err := h.metricService.ListMetrics(ctx)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		return
