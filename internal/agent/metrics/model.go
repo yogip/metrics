@@ -5,7 +5,7 @@ import (
 )
 
 type Transporter interface {
-	SendMetric(req *model.MetricResponse) error
+	SendMetric(req *model.MetricsV2) error
 }
 
 type Metric interface {
@@ -19,7 +19,7 @@ type Gauge struct {
 
 func (g *Gauge) Send(transport Transporter) error {
 	return transport.SendMetric(
-		&model.MetricResponse{Name: g.Name, Type: g.Type(), Value: g.StringValue()},
+		&model.MetricsV2{ID: g.Name, MType: g.Type(), Value: &g.Value},
 	)
 }
 
@@ -29,10 +29,11 @@ type Counter struct {
 
 func (c *Counter) Send(transport Transporter) error {
 	err := transport.SendMetric(
-		&model.MetricResponse{Name: c.Name, Type: c.Type(), Value: c.StringValue()},
+		&model.MetricsV2{ID: c.Name, MType: c.Type(), Delta: &c.Value},
 	)
-	if err == nil {
-		c.Value = 0
+	if err != nil {
+		return err
 	}
-	return err
+	c.Value = 0
+	return nil
 }

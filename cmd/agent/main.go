@@ -2,14 +2,23 @@ package main
 
 import (
 	"log"
-
 	"metrics/internal/agent"
 	"metrics/internal/agent/config"
+	"metrics/internal/logger"
+
+	"go.uber.org/zap"
 )
 
 func main() {
-	cfg := config.NewAgentConfig()
+	cfg, err := config.NewAgentConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	log.Println("Start agent for: ", cfg.ServerAddresPort)
+	if err := logger.Initialize(cfg.LogLevel); err != nil {
+		log.Fatal(err)
+	}
+
+	logger.Log.Info("Start agent", zap.String("server", cfg.ServerAddresPort))
 	agent.Run(cfg)
 }
