@@ -11,6 +11,7 @@ import (
 	"metrics/internal/agent/config"
 	"metrics/internal/agent/metrics"
 	"metrics/internal/agent/transport"
+	"metrics/internal/core/model"
 	"metrics/internal/logger"
 
 	"go.uber.org/zap"
@@ -59,11 +60,17 @@ func pollFromRuntime() {
 
 func reportMetrics(client metrics.Transporter) {
 	logger.Log.Debug("Reporting all metrics")
+	data := []*model.MetricsV2{}
 	for _, metric := range metrics.AllMetrics {
-		err := metric.Send(client)
-		if err != nil {
-			logger.Log.Error("sending metric error", zap.String("error", err.Error()))
-		}
+		data = append(data, metric.Payload())
+	}
+	err := client.SendMetric(data)
+	if err != nil {
+		logger.Log.Error("sending metric error", zap.String("error", err.Error()))
+		return
+	}
+	for _, metric := range metrics.AllMetrics {
+		metric.WasSend()
 	}
 }
 

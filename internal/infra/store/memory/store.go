@@ -55,11 +55,11 @@ func (s *Store) Close() {
 	close(s.quit)
 }
 
-func (s *Store) GetGauge(ctx context.Context, req *model.MetricRequest) (*model.Gauge, error) {
+func (s *Store) GetGauge(ctx context.Context, req *model.MetricsV2) (*model.Gauge, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
-	res, ok := s.gauge[req.Name]
+	res, ok := s.gauge[req.ID]
 	if !ok {
 		return nil, nil
 	}
@@ -77,11 +77,11 @@ func (s *Store) SetGauge(ctx context.Context, gauge *model.Gauge) error {
 	return nil
 }
 
-func (s *Store) GetCounter(ctx context.Context, req *model.MetricRequest) (*model.Counter, error) {
+func (s *Store) GetCounter(ctx context.Context, req *model.MetricsV2) (*model.Counter, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
-	res, ok := s.counter[req.Name]
+	res, ok := s.counter[req.ID]
 	if !ok {
 		return nil, nil
 	}
@@ -97,6 +97,55 @@ func (s *Store) SetCounter(ctx context.Context, counter *model.Counter) error {
 		s.saveDump()
 	}
 	return nil
+}
+
+func (s *Store) BatchUpsertMetrics(ctx context.Context, metrics []*model.MetricsV2) ([]*model.MetricsV2, error) {
+	results := make([]*model.MetricsV2, 0, len(metrics))
+	for _, m := range metrics {
+		logger.Log.Debug("BatchUpsertMetrics input",
+			zap.String("metric", m.ID),
+			zap.String("type", m.MType.String()),
+			zap.Float64p("value", m.Value),
+			zap.Int64p("delta", m.Delta),
+		)
+		switch m.MType {
+		case model.GaugeType:
+			if m.Value == nil {
+				return nil, errors.New("incorrect value")
+			}
+			gauge, err := s.GetGauge(ctx, m)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch %s from the store: %w", m.MType.String(), err)
+			}
+			if gauge == nil {
+				gauge = model.NewGauge(m.ID)
+			}
+			gauge.Set(*m.Value)
+			if err = s.SetGauge(ctx, gauge); err != nil {
+				return nil, fmt.Errorf("failed to save gauge to store: %w", err)
+			}
+			results = append(results, &model.MetricsV2{ID: m.ID, MType: m.MType, Value: &gauge.Value})
+		case model.CounterType:
+			if m.Delta == nil {
+				return nil, errors.New("incorrect value")
+			}
+			counter, err := s.GetCounter(ctx, m)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch %s from the store: %w", m.MType.String(), err)
+			}
+			if counter == nil {
+				counter = model.NewCounter(m.ID)
+			}
+			counter.Increment(*m.Delta)
+			if err = s.SetCounter(ctx, counter); err != nil {
+				return nil, fmt.Errorf("failed to save gauge to store: %w", err)
+			}
+			results = append(results, &model.MetricsV2{ID: m.ID, MType: m.MType, Delta: &counter.Value})
+		default:
+			return nil, fmt.Errorf("unknown metric type: %s", m.MType.String())
+		}
+	}
+	return results, nil
 }
 
 func (s *Store) ListGauge(ctx context.Context) ([]*model.Gauge, error) {

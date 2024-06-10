@@ -9,10 +9,11 @@ import (
 )
 
 type Store interface {
-	GetGauge(ctx context.Context, req *model.MetricRequest) (*model.Gauge, error)
+	BatchUpsertMetrics(ctx context.Context, metrics []*model.MetricsV2) ([]*model.MetricsV2, error)
+	GetGauge(ctx context.Context, req *model.MetricsV2) (*model.Gauge, error)
 	SetGauge(ctx context.Context, gauge *model.Gauge) error
 	ListGauge(ctx context.Context) ([]*model.Gauge, error)
-	GetCounter(ctx context.Context, req *model.MetricRequest) (*model.Counter, error)
+	GetCounter(ctx context.Context, req *model.MetricsV2) (*model.Counter, error)
 	SetCounter(ctx context.Context, counter *model.Counter) error
 	ListCounter(ctx context.Context) ([]*model.Counter, error)
 	Ping(ctx context.Context) error

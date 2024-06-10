@@ -44,7 +44,7 @@ func TestMemStorageSetAndGetCounter(t *testing.T) {
 	for _, test := range tests {
 
 		t.Run(test.name, func(t *testing.T) {
-			req := &model.MetricRequest{Name: test.name, Type: model.CounterType}
+			req := &model.MetricsV2{ID: test.name, MType: model.CounterType}
 
 			counter, err := repo.GetCounter(context.Background(), req)
 			assert.NoError(t, err)

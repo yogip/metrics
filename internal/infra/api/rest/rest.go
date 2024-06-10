@@ -56,6 +56,7 @@ func NewAPI(metricService *service.MetricService, systemService *service.SystemS
 
 	router.POST("/value", handlerV2.GetHandler)
 	router.POST("/update", handlerV2.UpdateHandler)
+	router.POST("/updates", handlerV2.BatchUpdateHandler)
 
 	srv := &http.Server{Handler: router}
 	return &API{

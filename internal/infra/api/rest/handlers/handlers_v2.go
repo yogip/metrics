@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"metrics/internal/core/model"
 	"metrics/internal/core/service"
@@ -34,13 +36,34 @@ func (h *HandlerV2) UpdateHandler(ctx *gin.Context) {
 	)
 	log.Debug("Getting update request")
 
-	metric, err := h.metricService.UpsertMetricValue(ctx, req)
+	tOutCtx, cancel := context.WithTimeout(ctx, time.Second*15)
+	defer cancel()
+
+	metric, err := h.metricService.UpsertMetricValue(tOutCtx, req)
 	if err != nil {
 		ctx.String(http.StatusBadRequest, err.Error())
 		log.Error("Error setting metric value", zap.Error(err))
 		return
 	}
 	ctx.JSON(http.StatusOK, metric)
+}
+
+func (h *HandlerV2) BatchUpdateHandler(ctx *gin.Context) {
+	req := []*model.MetricsV2{}
+	if err := ctx.ShouldBindBodyWithJSON(&req); err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		logger.Log.Error("Error binding body", zap.Error(err))
+		return
+	}
+	logger.Log.Debug("Getting update request")
+
+	metrics, err := h.metricService.BatchUpsertMetricValue(ctx, req)
+	if err != nil {
+		ctx.String(http.StatusBadRequest, err.Error())
+		logger.Log.Error("Batch update error", zap.Error(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, metrics)
 }
 
 func (h *HandlerV2) GetHandler(ctx *gin.Context) {

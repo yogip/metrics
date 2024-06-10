@@ -23,7 +23,7 @@ type HTTPClient struct {
 func NewClient(serverHost string) *HTTPClient {
 	return &HTTPClient{
 		ServerHost:     serverHost,
-		MetricEndpoint: "/update",
+		MetricEndpoint: "/updates",
 		client:         &http.Client{},
 	}
 }
@@ -44,7 +44,7 @@ func (c *HTTPClient) compress(data *[]byte) (*bytes.Buffer, error) {
 }
 
 // HTTTP Client to sent metrics to MetricEndpoint
-func (c *HTTPClient) SendMetric(data *model.MetricsV2) error {
+func (c *HTTPClient) SendMetric(data []*model.MetricsV2) error {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("error marshalling request body: %w", err)
