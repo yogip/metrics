@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -180,10 +180,7 @@ func TestGetHandler(t *testing.T) {
 				Restore:         false,
 			})
 			assert.NoError(t, err)
-			store.SetCounter(
-				&model.MetricRequest{Name: tt.metric.ID, Type: tt.metric.MType},
-				&model.Counter{Name: tt.metric.ID, Value: *tt.metric.Delta},
-			)
+			store.SetCounter(context.Background(), &model.Counter{Name: tt.metric.ID, Value: *tt.metric.Delta})
 			service := service.NewMetricService(store)
 			handler := NewHandlerV2(service)
 
@@ -201,7 +198,6 @@ func TestGetHandler(t *testing.T) {
 
 			// Проверяем результаты
 			assert.Equal(t, tt.want.code, w.Code)
-			fmt.Println("-------", w.Body.String())
 			assert.JSONEq(t, tt.want.response, w.Body.String())
 		})
 	}

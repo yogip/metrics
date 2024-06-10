@@ -5,35 +5,36 @@ import (
 )
 
 type Transporter interface {
-	SendMetric(req *model.MetricsV2) error
+	SendMetric(req []*model.MetricsV2) error
 }
 
 type Metric interface {
-	Send(transport Transporter) error
+	Payload() *model.MetricsV2
 	Type() model.MetricType
+	WasSend()
 }
 
 type Gauge struct {
 	model.Gauge
 }
 
-func (g *Gauge) Send(transport Transporter) error {
-	return transport.SendMetric(
-		&model.MetricsV2{ID: g.Name, MType: g.Type(), Value: &g.Value},
-	)
+func (g *Gauge) WasSend() {}
+
+func (g *Gauge) Payload() *model.MetricsV2 {
+	return &model.MetricsV2{ID: g.Name, MType: g.Type(), Value: &g.Value}
+	// return transport.SendMetric(
+	// 	&model.MetricsV2{ID: g.Name, MType: g.Type(), Value: &g.Value},
+	// )
 }
 
 type Counter struct {
 	model.Counter
 }
 
-func (c *Counter) Send(transport Transporter) error {
-	err := transport.SendMetric(
-		&model.MetricsV2{ID: c.Name, MType: c.Type(), Delta: &c.Value},
-	)
-	if err != nil {
-		return err
-	}
+func (c *Counter) Payload() *model.MetricsV2 {
+	return &model.MetricsV2{ID: c.Name, MType: c.Type(), Delta: &c.Value}
+}
+
+func (c *Counter) WasSend() {
 	c.Value = 0
-	return nil
 }

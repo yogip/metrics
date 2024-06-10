@@ -25,7 +25,7 @@ func TestSendMetric(t *testing.T) {
 	minusTenFloat := -10.
 	minusBigFloat := -10000000000000000.
 
-	tests := []model.MetricsV2{
+	expectedMetrics := []*model.MetricsV2{
 		{
 			ID:    "counter",
 			MType: model.CounterType,
@@ -95,27 +95,23 @@ func TestSendMetric(t *testing.T) {
 		},
 	}
 
-	for _, expectedMetric := range tests {
-		t.Run(expectedMetric.ID, func(t *testing.T) {
-			// Create a test server
-			srv := gin.New()
-			srv.Use(middlewares.GzipDecompressMiddleware())
-			srv.POST("/update", func(c *gin.Context) {
-				var actualMetric model.MetricsV2
-				err := c.BindJSON(&actualMetric)
-				assert.NoError(t, err)
+	// Create a test server
+	srv := gin.New()
+	srv.Use(middlewares.GzipDecompressMiddleware())
+	srv.POST("/updates", func(c *gin.Context) {
+		var actualMetrics []*model.MetricsV2
+		err := c.BindJSON(&actualMetrics)
+		assert.NoError(t, err)
 
-				assert.Equal(t, expectedMetric, actualMetric)
-			})
-			testSrv := httptest.NewServer(srv)
+		assert.Equal(t, expectedMetrics, actualMetrics)
+	})
+	testSrv := httptest.NewServer(srv)
 
-			client := NewClient(testSrv.URL)
+	client := NewClient(testSrv.URL)
 
-			// Call the function being tested
-			err := client.SendMetric(&expectedMetric)
+	// Call the function being tested
+	err := client.SendMetric(expectedMetrics)
 
-			// Verify the result
-			assert.NoError(t, err)
-		})
-	}
+	// Verify the result
+	assert.NoError(t, err)
 }

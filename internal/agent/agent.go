@@ -11,13 +11,14 @@ import (
 	"metrics/internal/agent/config"
 	"metrics/internal/agent/metrics"
 	"metrics/internal/agent/transport"
+	"metrics/internal/core/model"
 	"metrics/internal/logger"
 
 	"go.uber.org/zap"
 )
 
 func pollFromRuntime() {
-	logger.Log.Debug("Polling metrics")
+	logger.Log.Debug("Gathering metrics")
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	var rtm runtime.MemStats
@@ -34,36 +35,42 @@ func pollFromRuntime() {
 	metrics.GCCPUFractionGauge.Set(float64(rtm.GCCPUFraction))
 	metrics.GCSysGauge.Set(float64(rtm.GCSys))
 	metrics.HeapAllocGauge.Set(float64(rtm.HeapAlloc))
-	metrics.HeapIdleGauge.Set(float64(rtm.HeapAlloc))
-	metrics.HeapInuseGauge.Set(float64(rtm.HeapAlloc))
-	metrics.HeapObjectsGauge.Set(float64(rtm.HeapAlloc))
-	metrics.HeapReleasedGauge.Set(float64(rtm.HeapAlloc))
-	metrics.HeapSysGauge.Set(float64(rtm.HeapAlloc))
-	metrics.LastGCGauge.Set(float64(rtm.HeapAlloc))
-	metrics.LookupsGauge.Set(float64(rtm.HeapAlloc))
-	metrics.MCacheInuseGauge.Set(float64(rtm.HeapAlloc))
-	metrics.MCacheSysGauge.Set(float64(rtm.HeapAlloc))
-	metrics.MSpanInuseGauge.Set(float64(rtm.HeapAlloc))
-	metrics.MSpanSysGauge.Set(float64(rtm.HeapAlloc))
-	metrics.MallocsGauge.Set(float64(rtm.HeapAlloc))
-	metrics.NextGCGauge.Set(float64(rtm.HeapAlloc))
-	metrics.NumForcedGCGauge.Set(float64(rtm.HeapAlloc))
-	metrics.NumGCGauge.Set(float64(rtm.HeapAlloc))
-	metrics.OtherSysGauge.Set(float64(rtm.HeapAlloc))
-	metrics.PauseTotalNsGauge.Set(float64(rtm.HeapAlloc))
-	metrics.StackInuseGauge.Set(float64(rtm.HeapAlloc))
-	metrics.StackSysGauge.Set(float64(rtm.HeapAlloc))
-	metrics.SysGauge.Set(float64(rtm.HeapAlloc))
-	metrics.TotalAllocGauge.Set(float64(rtm.HeapAlloc))
+	metrics.HeapIdleGauge.Set(float64(rtm.HeapIdle))
+	metrics.HeapInuseGauge.Set(float64(rtm.HeapInuse))
+	metrics.HeapObjectsGauge.Set(float64(rtm.HeapObjects))
+	metrics.HeapReleasedGauge.Set(float64(rtm.HeapReleased))
+	metrics.HeapSysGauge.Set(float64(rtm.HeapSys))
+	metrics.LastGCGauge.Set(float64(rtm.LastGC))
+	metrics.LookupsGauge.Set(float64(rtm.Lookups))
+	metrics.MCacheInuseGauge.Set(float64(rtm.MCacheInuse))
+	metrics.MCacheSysGauge.Set(float64(rtm.MCacheSys))
+	metrics.MSpanInuseGauge.Set(float64(rtm.MSpanInuse))
+	metrics.MSpanSysGauge.Set(float64(rtm.MSpanSys))
+	metrics.MallocsGauge.Set(float64(rtm.Mallocs))
+	metrics.NextGCGauge.Set(float64(rtm.NextGC))
+	metrics.NumForcedGCGauge.Set(float64(rtm.NumForcedGC))
+	metrics.NumGCGauge.Set(float64(rtm.NumGC))
+	metrics.OtherSysGauge.Set(float64(rtm.OtherSys))
+	metrics.PauseTotalNsGauge.Set(float64(rtm.PauseTotalNs))
+	metrics.StackInuseGauge.Set(float64(rtm.StackInuse))
+	metrics.StackSysGauge.Set(float64(rtm.StackSys))
+	metrics.SysGauge.Set(float64(rtm.Sys))
+	metrics.TotalAllocGauge.Set(float64(rtm.TotalAlloc))
 }
 
 func reportMetrics(client metrics.Transporter) {
 	logger.Log.Debug("Reporting all metrics")
+	data := []*model.MetricsV2{}
 	for _, metric := range metrics.AllMetrics {
-		err := metric.Send(client)
-		if err != nil {
-			logger.Log.Error("sending metric error", zap.String("error", err.Error()))
-		}
+		data = append(data, metric.Payload())
+	}
+	err := client.SendMetric(data)
+	if err != nil {
+		logger.Log.Error("sending metric error", zap.String("error", err.Error()))
+		return
+	}
+	for _, metric := range metrics.AllMetrics {
+		metric.WasSend()
 	}
 }
 

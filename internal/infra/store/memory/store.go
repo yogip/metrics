@@ -1,7 +1,9 @@
 package memory
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"metrics/internal/core/config"
@@ -40,7 +42,7 @@ func NewStore(cfg *config.StorageConfig) (*Store, error) {
 		go store.dumpPeriodicly()
 	}
 	logger.Log.Info(
-		"Store initialized",
+		"Memory Store initialized",
 		zap.String("FileStoragePath", cfg.FileStoragePath),
 		zap.Int64("StoreIntreval", cfg.StoreIntreval),
 		zap.Bool("Restore", cfg.Restore),
@@ -53,51 +55,100 @@ func (s *Store) Close() {
 	close(s.quit)
 }
 
-func (s *Store) GetGauge(req *model.MetricRequest) (*model.Gauge, error) {
+func (s *Store) GetGauge(ctx context.Context, req *model.MetricsV2) (*model.Gauge, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
-	res, ok := s.gauge[req.ID()]
+	res, ok := s.gauge[req.ID]
 	if !ok {
 		return nil, nil
 	}
 	return res, nil
 }
 
-func (s *Store) SetGauge(req *model.MetricRequest, gauge *model.Gauge) error {
+func (s *Store) SetGauge(ctx context.Context, gauge *model.Gauge) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	s.gauge[req.ID()] = gauge
+	s.gauge[gauge.Name] = gauge
 	if s.config.StoreIntreval == 0 && s.config.FileStoragePath != "" {
 		s.saveDump()
 	}
 	return nil
 }
 
-func (s *Store) GetCounter(req *model.MetricRequest) (*model.Counter, error) {
+func (s *Store) GetCounter(ctx context.Context, req *model.MetricsV2) (*model.Counter, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
-	res, ok := s.counter[req.ID()]
+	res, ok := s.counter[req.ID]
 	if !ok {
 		return nil, nil
 	}
 	return res, nil
 }
 
-func (s *Store) SetCounter(req *model.MetricRequest, counter *model.Counter) error {
+func (s *Store) SetCounter(ctx context.Context, counter *model.Counter) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
-	s.counter[req.ID()] = counter
+	s.counter[counter.Name] = counter
 	if s.config.StoreIntreval == 0 && s.config.FileStoragePath != "" {
 		s.saveDump()
 	}
 	return nil
 }
 
-func (s *Store) ListGauge() ([]*model.Gauge, error) {
+func (s *Store) BatchUpsertMetrics(ctx context.Context, metrics []*model.MetricsV2) ([]*model.MetricsV2, error) {
+	results := make([]*model.MetricsV2, 0, len(metrics))
+	for _, m := range metrics {
+		logger.Log.Debug("BatchUpsertMetrics input",
+			zap.String("metric", m.ID),
+			zap.String("type", m.MType.String()),
+			zap.Float64p("value", m.Value),
+			zap.Int64p("delta", m.Delta),
+		)
+		switch m.MType {
+		case model.GaugeType:
+			if m.Value == nil {
+				return nil, errors.New("incorrect value")
+			}
+			gauge, err := s.GetGauge(ctx, m)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch %s from the store: %w", m.MType.String(), err)
+			}
+			if gauge == nil {
+				gauge = model.NewGauge(m.ID)
+			}
+			gauge.Set(*m.Value)
+			if err = s.SetGauge(ctx, gauge); err != nil {
+				return nil, fmt.Errorf("failed to save gauge to store: %w", err)
+			}
+			results = append(results, &model.MetricsV2{ID: m.ID, MType: m.MType, Value: &gauge.Value})
+		case model.CounterType:
+			if m.Delta == nil {
+				return nil, errors.New("incorrect value")
+			}
+			counter, err := s.GetCounter(ctx, m)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch %s from the store: %w", m.MType.String(), err)
+			}
+			if counter == nil {
+				counter = model.NewCounter(m.ID)
+			}
+			counter.Increment(*m.Delta)
+			if err = s.SetCounter(ctx, counter); err != nil {
+				return nil, fmt.Errorf("failed to save gauge to store: %w", err)
+			}
+			results = append(results, &model.MetricsV2{ID: m.ID, MType: m.MType, Delta: &counter.Value})
+		default:
+			return nil, fmt.Errorf("unknown metric type: %s", m.MType.String())
+		}
+	}
+	return results, nil
+}
+
+func (s *Store) ListGauge(ctx context.Context) ([]*model.Gauge, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
@@ -108,7 +159,7 @@ func (s *Store) ListGauge() ([]*model.Gauge, error) {
 	return res, nil
 }
 
-func (s *Store) ListCounter() ([]*model.Counter, error) {
+func (s *Store) ListCounter(ctx context.Context) ([]*model.Counter, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
@@ -199,4 +250,8 @@ func (s *Store) dumpPeriodicly() {
 			s.mux.Unlock()
 		}
 	}
+}
+
+func (s *Store) Ping(ctx context.Context) error {
+	return errors.New("memory store not supported ping")
 }

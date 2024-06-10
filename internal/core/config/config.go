@@ -16,6 +16,7 @@ type StorageConfig struct {
 	StoreIntreval   int64  `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
+	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
 type Config struct {
@@ -31,6 +32,7 @@ func NewConfig() (*Config, error) {
 	flag.Int64Var(&cfg.Storage.StoreIntreval, "i", 300, "Dump DB to file with given interval. 0 - means to write all changes immediately")
 	flag.StringVar(&cfg.Storage.FileStoragePath, "f", "/tmp/metrics-db.json", "Path to dump file")
 	flag.BoolVar(&cfg.Storage.Restore, "r", true, "Restore DB dump from file")
+	flag.StringVar(&cfg.Storage.DatabaseDSN, "d", "", "Database connection string")
 	flag.Parse()
 
 	if value, exists := os.LookupEnv("ADDRESS"); exists {
@@ -55,6 +57,9 @@ func NewConfig() (*Config, error) {
 			return nil, fmt.Errorf("RESTORE convertation error: %w", err)
 		}
 		cfg.Storage.Restore = restore
+	}
+	if value, exists := os.LookupEnv("DATABASE_DSN"); exists {
+		cfg.Storage.DatabaseDSN = value
 	}
 
 	return &cfg, nil

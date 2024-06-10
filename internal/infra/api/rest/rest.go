@@ -37,7 +37,8 @@ func ZapLogger(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-func NewAPI(metricService *service.MetricService) *API {
+func NewAPI(metricService *service.MetricService, systemService *service.SystemService) *API {
+	serviceHandler := handlers.NewSystemHandler(systemService)
 	handlerV1 := handlers.NewHandlerV1(metricService)
 	handlerV2 := handlers.NewHandlerV2(metricService)
 
@@ -47,12 +48,15 @@ func NewAPI(metricService *service.MetricService) *API {
 	router.Use(middlewares.GzipDecompressMiddleware())
 	router.Use(middlewares.GzipCompressMiddleware())
 
+	router.GET("/ping", serviceHandler.Ping)
+
 	router.GET("/", handlerV1.ListHandler)
 	router.GET("/value/:type/:name", handlerV1.GetHandler)
 	router.POST("/update/:type/:name/:value", handlerV1.UpdateHandler)
 
 	router.POST("/value", handlerV2.GetHandler)
 	router.POST("/update", handlerV2.UpdateHandler)
+	router.POST("/updates", handlerV2.BatchUpdateHandler)
 
 	srv := &http.Server{Handler: router}
 	return &API{
