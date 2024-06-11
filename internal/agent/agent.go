@@ -1,10 +1,13 @@
 package agent
 
 import (
+	"context"
+	"fmt"
 	"math/rand"
 	"os"
 	"os/signal"
 	"runtime"
+	"sync"
 	"syscall"
 	"time"
 
@@ -13,12 +16,19 @@ import (
 	"metrics/internal/agent/transport"
 	"metrics/internal/core/model"
 	"metrics/internal/logger"
+	"metrics/internal/retrier"
 
 	"go.uber.org/zap"
 )
 
-func pollFromRuntime() {
+func pollFromRuntime(lock *sync.Mutex) {
+	if !lock.TryLock() {
+		logger.Log.Warn("Skip gathering metrics")
+		return
+	}
+	defer lock.Unlock()
 	logger.Log.Debug("Gathering metrics")
+
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	var rtm runtime.MemStats
@@ -58,14 +68,36 @@ func pollFromRuntime() {
 	metrics.TotalAllocGauge.Set(float64(rtm.TotalAlloc))
 }
 
-func reportMetrics(client metrics.Transporter) {
+func reportMetrics(ctx context.Context, client metrics.Transporter, lock *sync.Mutex) {
+	if !lock.TryLock() {
+		logger.Log.Warn("Skip reporting all metrics")
+		return
+	}
+	defer lock.Unlock()
 	logger.Log.Debug("Reporting all metrics")
+
+	ret := &retrier.Retrier{
+		Strategy: retrier.Backoff(
+			3,             // max attempts
+			1*time.Second, // initial delay
+			3,             // multiplier
+			5*time.Second, // max delay
+		),
+		OnRetry: func(ctx context.Context, n int, err error) {
+			logger.Log.Debug(fmt.Sprintf("reportMetrics retry #%d: %v", n, err))
+		},
+	}
+
 	data := []*model.MetricsV2{}
 	for _, metric := range metrics.AllMetrics {
 		data = append(data, metric.Payload())
 	}
-	err := client.SendMetric(data)
-	if err != nil {
+
+	fun := func() error {
+		return client.SendMetric(data)
+	}
+
+	if err := ret.Do(ctx, fun, syscall.ECONNREFUSED); err != nil {
 		logger.Log.Error("sending metric error", zap.String("error", err.Error()))
 		return
 	}
@@ -82,6 +114,9 @@ func Run(config *config.AgentConfig) {
 	defer reportTicker.Stop()
 
 	client := transport.NewClient(config.ServerAddresPort)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	lock := &sync.Mutex{}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
@@ -89,11 +124,12 @@ func Run(config *config.AgentConfig) {
 		select {
 		case <-quit:
 			logger.Log.Info("Received Ctrl+C, stopping...")
+			cancel()
 			return
 		case <-pollTicker.C:
-			pollFromRuntime()
+			go pollFromRuntime(lock)
 		case <-reportTicker.C:
-			reportMetrics(client)
+			go reportMetrics(ctx, client, lock)
 		}
 	}
 }

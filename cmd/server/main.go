@@ -23,6 +23,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -34,20 +36,18 @@ func main() {
 	}
 
 	if cfg.Storage.DatabaseDSN != "" {
-		err := migrations.RunMigration(cfg)
+		err := migrations.RunMigration(ctx, cfg)
 		if err != nil {
 			logger.Log.Fatal("Making migration error", zap.String("error", err.Error()))
 		}
 	}
 
-	if err := run(cfg); err != nil {
+	if err := run(ctx, cfg); err != nil {
 		logger.Log.Fatal("Running server Error", zap.String("error", err.Error()))
 	}
 }
 
-func run(cfg *config.Config) error {
-	ctx := context.Background()
-
+func run(ctx context.Context, cfg *config.Config) error {
 	store, err := store.NewStore(&cfg.Storage)
 	if err != nil {
 		return fmt.Errorf("failed to initialize a store: %w", err)

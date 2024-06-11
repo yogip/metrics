@@ -3,17 +3,33 @@ package db
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
+	"io"
 	"metrics/internal/core/config"
 	"metrics/internal/core/model"
 	"metrics/internal/logger"
+	"metrics/internal/retrier"
+	"syscall"
+	"time"
 
+	"github.com/jackc/pgx"
 	"go.uber.org/zap"
 )
 
 type Store struct {
-	db *sql.DB
+	db      *sql.DB
+	retrier *retrier.Retrier
+}
+
+var recoverableErrors = []error{
+	syscall.ECONNREFUSED,
+	pgx.ErrDeadConn,
+	sql.ErrConnDone,
+	pgx.ErrConnBusy,
+	driver.ErrBadConn,
+	io.EOF,
 }
 
 func NewStore(cfg *config.StorageConfig) (*Store, error) {
@@ -22,7 +38,19 @@ func NewStore(cfg *config.StorageConfig) (*Store, error) {
 		return nil, fmt.Errorf("failed to initialize Database: %w", err)
 	}
 
-	store := &Store{db: db}
+	ret := &retrier.Retrier{
+		Strategy: retrier.Backoff(
+			3,             // max attempts
+			1*time.Second, // initial delay
+			3,             // multiplier
+			5*time.Second, // max delay
+		),
+		OnRetry: func(ctx context.Context, n int, err error) {
+			logger.Log.Debug(fmt.Sprintf("Retrying DB. retry #%d: %v", n, err))
+		},
+	}
+
+	store := &Store{db: db, retrier: ret}
 
 	logger.Log.Info("DB Store initialized")
 	return store, nil
@@ -33,10 +61,25 @@ func (s *Store) Close() {
 }
 
 func (s *Store) Ping(ctx context.Context) error {
-	return s.db.PingContext(ctx)
+	fun := func() error {
+		return s.db.PingContext(ctx)
+	}
+	return s.retrier.Do(ctx, fun, recoverableErrors...)
 }
 
 func (s *Store) BatchUpsertMetrics(ctx context.Context, metrics []*model.MetricsV2) ([]*model.MetricsV2, error) {
+	results := []*model.MetricsV2{}
+	fun := func() error {
+		var err error
+		results, err = s.doBatchUpsertMetrics(ctx, metrics)
+		return err
+	}
+
+	err := s.retrier.Do(ctx, fun, recoverableErrors...)
+	return results, err
+}
+
+func (s *Store) doBatchUpsertMetrics(ctx context.Context, metrics []*model.MetricsV2) ([]*model.MetricsV2, error) {
 	results := make([]*model.MetricsV2, 0, len(metrics))
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -110,42 +153,65 @@ func (s *Store) BatchUpsertMetrics(ctx context.Context, metrics []*model.Metrics
 }
 
 func (s *Store) GetGauge(ctx context.Context, req *model.MetricsV2) (*model.Gauge, error) {
-	gauge := model.Gauge{}
+	gauge := &model.Gauge{}
 
-	row := s.db.QueryRowContext(ctx, "SELECT id, value FROM gauge WHERE id=$1", req.ID)
-	err := row.Scan(&gauge.Name, &gauge.Value)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+	fun := func() error {
+		var err error
+		row := s.db.QueryRowContext(ctx, "SELECT id, value FROM gauge WHERE id=$1", req.ID)
+		err = row.Scan(&gauge.Name, &gauge.Value)
+		if errors.Is(err, sql.ErrNoRows) {
+			gauge = nil
+			return nil
+		}
+		return err
 	}
+	err := s.retrier.Do(ctx, fun, recoverableErrors...)
 	if err != nil {
 		return nil, fmt.Errorf("error reading gauge: %w", err)
 	}
-
-	return &gauge, nil
+	return gauge, nil
 }
 
 func (s *Store) SetGauge(ctx context.Context, gauge *model.Gauge) error {
-	result, err := s.db.ExecContext(
-		ctx,
-		"INSERT INTO gauge(id, value) values($1, $2) ON conflict(id) DO UPDATE SET value = excluded.value",
-		gauge.Name, gauge.Value,
-	)
+	fun := func() error {
+		result, err := s.db.ExecContext(
+			ctx,
+			"INSERT INTO gauge(id, value) values($1, $2) ON conflict(id) DO UPDATE SET value = excluded.value",
+			gauge.Name, gauge.Value,
+		)
+		if err != nil {
+			return fmt.Errorf("error ExecContext for gauge: %w", err)
+		}
+
+		count, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("error getting RowsAffected for gauge: %w", err)
+		}
+		if count != 1 {
+			return fmt.Errorf("incorrect rows affected: %d", count)
+		}
+		return nil
+	}
+	err := s.retrier.Do(ctx, fun, recoverableErrors...)
 	if err != nil {
 		return fmt.Errorf("error writing gauge: %w", err)
 	}
-
-	count, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("error getting RowsAffected for gauge: %w", err)
-	}
-	if count != 1 {
-		return fmt.Errorf("incorrect rows affected: %d", count)
-	}
-
 	return nil
 }
 
 func (s *Store) ListGauge(ctx context.Context) ([]*model.Gauge, error) {
+	results := []*model.Gauge{}
+	fun := func() error {
+		var err error
+		results, err = s.doListGauge(ctx)
+		return err
+	}
+
+	err := s.retrier.Do(ctx, fun, recoverableErrors...)
+	return results, err
+}
+
+func (s *Store) doListGauge(ctx context.Context) ([]*model.Gauge, error) {
 	gauges := make([]*model.Gauge, 0, 10)
 
 	rows, err := s.db.QueryContext(ctx, "SELECT id, value FROM gauge")
@@ -176,40 +242,63 @@ func (s *Store) ListGauge(ctx context.Context) ([]*model.Gauge, error) {
 func (s *Store) GetCounter(ctx context.Context, req *model.MetricsV2) (*model.Counter, error) {
 	counter := &model.Counter{}
 
-	row := s.db.QueryRowContext(ctx, "SELECT id, value FROM counter WHERE id=$1", req.ID)
-	err := row.Scan(&counter.Name, &counter.Value)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
+	fun := func() error {
+		var err error
+		row := s.db.QueryRowContext(ctx, "SELECT id, value FROM counter WHERE id=$1", req.ID)
+		err = row.Scan(&counter.Name, &counter.Value)
+		if errors.Is(err, sql.ErrNoRows) {
+			counter = nil
+			return nil
+		}
+		return err
 	}
+	err := s.retrier.Do(ctx, fun, recoverableErrors...)
 	if err != nil {
 		return nil, fmt.Errorf("error reading gauge: %w", err)
 	}
-
 	return counter, nil
 }
 
 func (s *Store) SetCounter(ctx context.Context, counter *model.Counter) error {
-	result, err := s.db.ExecContext(
-		ctx,
-		"INSERT INTO counter(id, value) values($1, $2) ON conflict(id) DO UPDATE SET value = excluded.value",
-		counter.Name, counter.Value,
-	)
+	fun := func() error {
+		result, err := s.db.ExecContext(
+			ctx,
+			"INSERT INTO counter(id, value) values($1, $2) ON conflict(id) DO UPDATE SET value = excluded.value",
+			counter.Name, counter.Value,
+		)
+		if err != nil {
+			return fmt.Errorf("error ExecContext for counter: %w", err)
+		}
+
+		count, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("error getting RowsAffected for counter: %w", err)
+		}
+		if count != 1 {
+			return fmt.Errorf("incorrect rows affected: %d", count)
+		}
+		return nil
+	}
+	err := s.retrier.Do(ctx, fun, recoverableErrors...)
 	if err != nil {
 		return fmt.Errorf("error writing counter: %w", err)
 	}
-
-	count, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("error getting RowsAffected for counter: %w", err)
-	}
-	if count != 1 {
-		return fmt.Errorf("incorrect rows affected: %d", count)
-	}
-
 	return nil
 }
 
 func (s *Store) ListCounter(ctx context.Context) ([]*model.Counter, error) {
+	results := []*model.Counter{}
+	fun := func() error {
+		var err error
+		results, err = s.doListCounter(ctx)
+		return err
+	}
+
+	err := s.retrier.Do(ctx, fun, recoverableErrors...)
+	return results, err
+}
+
+func (s *Store) doListCounter(ctx context.Context) ([]*model.Counter, error) {
 	counters := make([]*model.Counter, 0, 10)
 
 	rows, err := s.db.QueryContext(ctx, "SELECT id, value FROM counter")

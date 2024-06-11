@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"sync"
 	"testing"
 
 	"metrics/internal/agent/metrics"
@@ -9,7 +10,8 @@ import (
 )
 
 func TestPollFromRuntime(t *testing.T) {
-	pollFromRuntime()
+	lock := &sync.Mutex{}
+	pollFromRuntime(lock)
 
 	gauges := []metrics.Gauge{
 		metrics.RandomValue,
