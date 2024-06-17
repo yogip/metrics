@@ -22,6 +22,7 @@ type StorageConfig struct {
 type Config struct {
 	Server  ServerConfig
 	Storage StorageConfig
+	HashKey string `env:"KEY"`
 }
 
 func NewConfig() (*Config, error) {
@@ -33,6 +34,8 @@ func NewConfig() (*Config, error) {
 	flag.StringVar(&cfg.Storage.FileStoragePath, "f", "/tmp/metrics-db.json", "Path to dump file")
 	flag.BoolVar(&cfg.Storage.Restore, "r", true, "Restore DB dump from file")
 	flag.StringVar(&cfg.Storage.DatabaseDSN, "d", "", "Database connection string")
+	flag.StringVar(&cfg.HashKey, "k", "", "Hash key to check request signature")
+
 	flag.Parse()
 
 	if value, exists := os.LookupEnv("ADDRESS"); exists {
@@ -60,6 +63,9 @@ func NewConfig() (*Config, error) {
 	}
 	if value, exists := os.LookupEnv("DATABASE_DSN"); exists {
 		cfg.Storage.DatabaseDSN = value
+	}
+	if value, exists := os.LookupEnv("KEY"); exists && value != "" {
+		cfg.HashKey = value
 	}
 
 	return &cfg, nil

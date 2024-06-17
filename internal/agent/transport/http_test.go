@@ -107,7 +107,7 @@ func TestSendMetric(t *testing.T) {
 	})
 	testSrv := httptest.NewServer(srv)
 
-	client := NewClient(testSrv.URL)
+	client := NewClient(testSrv.URL, "")
 
 	// Call the function being tested
 	err := client.SendMetric(expectedMetrics)
