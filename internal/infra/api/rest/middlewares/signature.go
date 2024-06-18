@@ -30,6 +30,12 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 			return
 		}
 
+		for key, values := range c.Request.Header {
+			for _, value := range values {
+				log.Info(fmt.Sprintf("--- Header: %s = %s\n", key, value))
+			}
+		}
+
 		signature := c.GetHeader("HashSHA256")
 		// if signature = c.GetHeader("Hashsha256"); signature == "" {
 		// 	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": false, "message": "There is no signature header"})
