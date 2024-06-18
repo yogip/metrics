@@ -23,7 +23,6 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 			zap.String("HashSHA256", c.GetHeader("HashSHA256")),
 			zap.String("Hash", c.GetHeader("Hash")),
 		)
-		log.Info("--!! Start VerifySignature")
 
 		if c.Request.Method != http.MethodPut && c.Request.Method != http.MethodPost {
 			c.Next()
@@ -49,6 +48,7 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 		}
 		// Восстановление тела запроса для последующего использования
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+		log.Info("--!! Start VerifySignature for body", zap.String("body", string(body)))
 
 		if len(body) == 0 {
 			log.Debug("Skip Signature verification beacuse of empty body")
