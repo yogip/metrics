@@ -44,7 +44,7 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 		// Восстановление тела запроса для последующего использования
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
-		if string(body) == "" && signature == "none" {
+		if len(body) == 0 {
 			log.Debug("Skip Signature verification beacuse of empty body")
 			c.Next()
 			return
