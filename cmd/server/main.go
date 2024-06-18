@@ -11,16 +11,20 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"go.uber.org/zap"
+
 	"metrics/internal/core/config"
 	"metrics/internal/core/service"
 	"metrics/internal/infra/api/rest"
 	"metrics/internal/infra/store"
 	"metrics/internal/logger"
-
-	"go.uber.org/zap"
+	"metrics/migrations"
 )
 
 func main() {
+	ctx := context.Background()
+
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -31,21 +35,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := run(cfg); err != nil {
+	if cfg.Storage.DatabaseDSN != "" {
+		err := migrations.RunMigration(ctx, cfg)
+		if err != nil {
+			logger.Log.Fatal("Making migration error", zap.String("error", err.Error()))
+		}
+	}
+
+	if err := run(ctx, cfg); err != nil {
 		logger.Log.Fatal("Running server Error", zap.String("error", err.Error()))
 	}
 }
 
-func run(cfg *config.Config) error {
-	ctx := context.Background()
+func run(ctx context.Context, cfg *config.Config) error {
 	store, err := store.NewStore(&cfg.Storage)
 	if err != nil {
 		return fmt.Errorf("failed to initialize a store: %w", err)
 	}
+	defer store.Close()
 
-	service := service.NewMetricService(store)
+	metricService := service.NewMetricService(store)
+	systemService := service.NewSystemService(store)
 	logger.Log.Info("Service initialized")
-	api := rest.NewAPI(service)
+	api := rest.NewAPI(metricService, systemService)
 
 	// https://github.com/gin-gonic/gin/blob/master/docs/doc.md#manually
 	// Initializing the server in a goroutine so that
@@ -75,7 +87,6 @@ func run(cfg *config.Config) error {
 		log.Fatal("Server forced to shutdown:", err)
 	}
 
-	store.Close()
 	logger.Log.Info("Server exiting")
 	return nil
 }
