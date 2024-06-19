@@ -88,7 +88,6 @@ func (h *HandlerV2) GetHandler(ctx *gin.Context) {
 	}
 	if metric == nil {
 		ctx.String(http.StatusNotFound, "Not found")
-		logger.Log.Error("Metric not found", zap.Error(err))
 		return
 	}
 
