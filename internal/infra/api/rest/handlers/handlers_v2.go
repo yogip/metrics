@@ -80,7 +80,7 @@ func (h *HandlerV2) GetHandler(ctx *gin.Context) {
 	if err := ctx.ShouldBindBodyWithJSON(&req); err != nil {
 		logger.Log.Error("Error binding uri", zap.Error(err))
 		ctx.AbortWithStatusJSON(
-			http.StatusBadRequest,
+			http.StatusNotFound, // todo experiment for tests
 			gin.H{"status": false, "message": fmt.Sprintf("Error binding body: %s", err)},
 		)
 		return
