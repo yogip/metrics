@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -69,8 +70,8 @@ func (h *HandlerV2) BatchUpdateHandler(ctx *gin.Context) {
 func (h *HandlerV2) GetHandler(ctx *gin.Context) {
 	req := &model.MetricsV2{}
 	if err := ctx.ShouldBindBodyWithJSON(&req); err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
 		logger.Log.Error("Error binding uri", zap.Error(err))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": false, "message": fmt.Sprintf("Error binding body: %s", err)})
 		return
 	}
 	log := logger.Log.With(
@@ -82,7 +83,7 @@ func (h *HandlerV2) GetHandler(ctx *gin.Context) {
 
 	metric, err := h.metricService.GetMetric(ctx, req)
 	if err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": false, "message": fmt.Sprintf("Error getting metric: %s", err)})
 		logger.Log.Error("Error getting metric", zap.Error(err))
 		return
 	}
