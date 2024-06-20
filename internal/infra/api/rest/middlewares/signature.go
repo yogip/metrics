@@ -70,8 +70,8 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 				zap.String("signature", signature),
 				zap.String("body", string(body)),
 			)
-			// c.AbortWithStatus(http.StatusBadRequest)
-			// return
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": false, "message": "Signaure is not valid"})
+			return
 		}
 
 		c.Next()
