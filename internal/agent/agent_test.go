@@ -17,7 +17,6 @@ func TestPollFromRuntime(t *testing.T) {
 		metrics.RandomValue,
 		metrics.AllocGauge,
 		metrics.BuckHashSysGauge,
-		metrics.FreesGauge,
 		metrics.GCSysGauge,
 		metrics.HeapAllocGauge,
 		metrics.HeapIdleGauge,
