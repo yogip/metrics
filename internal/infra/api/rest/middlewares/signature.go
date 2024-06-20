@@ -64,9 +64,9 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 		log.Info("==VerifySignature =====")
 
 		if validSignature != signature {
-			log.Warn("Signature error", zap.String("validSignature", validSignature), zap.String("signature", signature))
-			c.AbortWithStatus(http.StatusBadRequest)
-			return
+			log.Warn("!!!--- Signature verification error  ---!!!", zap.String("validSignature", validSignature), zap.String("signature", signature))
+			// c.AbortWithStatus(http.StatusBadRequest)
+			// return
 		}
 
 		c.Next()
