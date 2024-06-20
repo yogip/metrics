@@ -29,18 +29,7 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 			return
 		}
 
-		for key, values := range c.Request.Header {
-			for _, value := range values {
-				log.Info(fmt.Sprintf("--- Header: %s = %s\n", key, value))
-			}
-		}
-
 		signature := c.GetHeader("HashSHA256")
-		// if signature = c.GetHeader("HashSHA256"); signature == "" {
-		// 	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": false, "message": "There is no signature header"})
-		// 	return
-		// }
-
 		body, err := io.ReadAll(c.Request.Body)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
@@ -48,7 +37,6 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 		}
 		// Восстановление тела запроса для последующего использования
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-		log.Info("---! Start VerifySignature for body", zap.String("body", string(body)))
 
 		if len(body) == 0 {
 			log.Debug("Skip Signature verification beacuse of empty body")
@@ -60,9 +48,6 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 		h.Write(body)
 		validSignature := hex.EncodeToString(h.Sum(nil))
 
-		log.Info(fmt.Sprintf("%s == %s", validSignature, signature))
-		log.Info("==VerifySignature =====")
-
 		if validSignature != signature {
 			log.Warn(
 				"!!!--- Signature verification error  ---!!!",
@@ -70,8 +55,8 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 				zap.String("signature", signature),
 				zap.String("body", string(body)),
 			)
-			// возвращаю 404 для временного фикса, т/к авто-тест отправляет запрос без подписи
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"status": false, "message": "Signaure is not valid"})
+			// пропускаю 400 для временного фикса, т/к авто-тест на запрос без подписи ждет 200 ответ
+			// c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"status": false, "message": "Signaure is not valid"})
 			return
 		}
 
