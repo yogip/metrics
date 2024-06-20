@@ -36,7 +36,7 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 		}
 
 		signature := c.GetHeader("HashSHA256")
-		// if signature = c.GetHeader("Hashsha256"); signature == "" {
+		// if signature = c.GetHeader("HashSHA256"); signature == "" {
 		// 	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": false, "message": "There is no signature header"})
 		// 	return
 		// }
@@ -64,7 +64,12 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 		log.Info("==VerifySignature =====")
 
 		if validSignature != signature {
-			log.Warn("!!!--- Signature verification error  ---!!!", zap.String("validSignature", validSignature), zap.String("signature", signature))
+			log.Warn(
+				"!!!--- Signature verification error  ---!!!",
+				zap.String("validSignature", validSignature),
+				zap.String("signature", signature),
+				zap.String("body", string(body)),
+			)
 			// c.AbortWithStatus(http.StatusBadRequest)
 			// return
 		}
