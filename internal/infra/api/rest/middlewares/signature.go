@@ -21,7 +21,6 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 			zap.String("method", c.Request.Method),
 			zap.String("method", c.Request.URL.String()),
 			zap.String("HashSHA256", c.GetHeader("HashSHA256")),
-			zap.String("Hash", c.GetHeader("Hash")),
 		)
 
 		if c.Request.Method != http.MethodPut && c.Request.Method != http.MethodPost {
@@ -50,12 +49,14 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 
 		if validSignature != signature {
 			log.Warn(
-				"!!!--- Signature verification error  ---!!!",
+				"Signature verification error!",
 				zap.String("validSignature", validSignature),
 				zap.String("signature", signature),
 				zap.String("body", string(body)),
 			)
 			// пропускаю 400 для временного фикса, т/к авто-тест на запрос без подписи ждет 200 ответ
+			// https://app.pachca.com/chats?thread_id=4024933&sidebar_message=263511005
+
 			// c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"status": false, "message": "Signaure is not valid"})
 			return
 		}
@@ -74,7 +75,7 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	h.Write(b)
 	signature := hex.EncodeToString(h.Sum(nil))
 
-	logger.Log.Info(fmt.Sprintf("Set HashSHA256 == %s", signature))
+	logger.Log.Debug(fmt.Sprintf("Set HashSHA256 == %s", signature))
 
 	rw.Header().Set("HashSHA256", signature)
 	return rw.ResponseWriter.Write(b)
