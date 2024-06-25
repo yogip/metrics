@@ -102,7 +102,7 @@ func reportMetrics(ctx context.Context, client metrics.Transporter, lock *sync.M
 		return
 	}
 	for _, metric := range metrics.AllMetrics {
-		metric.WasSend()
+		metric.WasSent()
 	}
 }
 
@@ -113,7 +113,7 @@ func Run(config *config.AgentConfig) {
 	reportTicker := time.NewTicker(time.Duration(config.ReportInterval) * time.Second)
 	defer reportTicker.Stop()
 
-	client := transport.NewClient(config.ServerAddresPort)
+	client := transport.NewClient(config.ServerAddresPort, config.HashKey)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	lock := &sync.Mutex{}
