@@ -56,7 +56,6 @@ func VerifySignature(hashKey string) gin.HandlerFunc {
 			)
 			// пропускаю 400 для временного фикса, т/к авто-тест на запрос без подписи ждет 200 ответ
 			// https://app.pachca.com/chats?thread_id=4024933&sidebar_message=263511005
-
 			// c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"status": false, "message": "Signaure is not valid"})
 			return
 		}
