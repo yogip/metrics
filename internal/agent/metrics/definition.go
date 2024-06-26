@@ -35,6 +35,11 @@ var StackSysGauge = Gauge{model.Gauge{Name: "StackSys"}}
 var SysGauge = Gauge{model.Gauge{Name: "Sys"}}
 var TotalAllocGauge = Gauge{model.Gauge{Name: "TotalAlloc"}}
 
+// todo
+// var TotalMemory = Gauge{model.Gauge{Name: "TotalMemory"}}
+// var FreeMemory = Gauge{model.Gauge{Name: "FreeMemory"}}
+// var CPUutilization1 = Gauge{model.Gauge{Name: "CPUutilization1"}}
+
 var AllMetrics []Metric = []Metric{
 	&PollCountCounter,
 	&RandomValue,

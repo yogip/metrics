@@ -25,7 +25,7 @@ func TestSendMetric(t *testing.T) {
 	minusTenFloat := -10.
 	minusBigFloat := -10000000000000000.
 
-	expectedMetrics := []*model.MetricsV2{
+	expectedMetrics := []model.MetricsV2{
 		{
 			ID:    "counter",
 			MType: model.CounterType,
@@ -99,7 +99,7 @@ func TestSendMetric(t *testing.T) {
 	srv := gin.New()
 	srv.Use(middlewares.GzipDecompressMiddleware())
 	srv.POST("/updates", func(c *gin.Context) {
-		var actualMetrics []*model.MetricsV2
+		var actualMetrics []model.MetricsV2
 		err := c.BindJSON(&actualMetrics)
 		assert.NoError(t, err)
 

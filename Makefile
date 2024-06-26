@@ -9,4 +9,4 @@ server:
 	go run cmd/server/main.go -l debug -d "host=localhost port=45432 user=username password=password dbname=metrics sslmode=disable" -k SomeKey
 
 agent:
-	go run cmd/agent/main.go -l debug -k SomeKey
+	go run cmd/agent/main.go -v debug -k SomeKey -l 3

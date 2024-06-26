@@ -55,7 +55,7 @@ func (c *HTTPClient) sign(data *[]byte) string {
 }
 
 // HTTTP Client to sent metrics to MetricEndpoint
-func (c *HTTPClient) SendMetric(data []*model.MetricsV2) error {
+func (c *HTTPClient) SendMetric(data []model.MetricsV2) error {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("error marshalling request body: %w", err)
