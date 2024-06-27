@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"fmt"
+	"metrics/internal/core/config"
 	"metrics/internal/core/service"
 	"metrics/internal/infra/api/rest/handlers"
 	"metrics/internal/infra/api/rest/middlewares"
@@ -37,7 +38,7 @@ func ZapLogger(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
-func NewAPI(metricService *service.MetricService, systemService *service.SystemService) *API {
+func NewAPI(cfg *config.Config, metricService *service.MetricService, systemService *service.SystemService) *API {
 	serviceHandler := handlers.NewSystemHandler(systemService)
 	handlerV1 := handlers.NewHandlerV1(metricService)
 	handlerV2 := handlers.NewHandlerV2(metricService)
@@ -47,16 +48,21 @@ func NewAPI(metricService *service.MetricService, systemService *service.SystemS
 	router.Use(gin.Recovery())
 	router.Use(middlewares.GzipDecompressMiddleware())
 	router.Use(middlewares.GzipCompressMiddleware())
+	logger.Log.Info(fmt.Sprintf("--!! build router with HashKey: %s", cfg.HashKey)) // todo -
+	if cfg.HashKey != "" {
+		router.Use(middlewares.VerifySignature(cfg.HashKey))
+		router.Use(middlewares.SignBody(cfg.HashKey))
+	}
 
 	router.GET("/ping", serviceHandler.Ping)
 
 	router.GET("/", handlerV1.ListHandler)
-	router.GET("/value/:type/:name", handlerV1.GetHandler)
-	router.POST("/update/:type/:name/:value", handlerV1.UpdateHandler)
+	router.GET("/value/:type/:name/", handlerV1.GetHandler)
+	router.POST("/update/:type/:name/:value/", handlerV1.UpdateHandler)
 
-	router.POST("/value", handlerV2.GetHandler)
-	router.POST("/update", handlerV2.UpdateHandler)
-	router.POST("/updates", handlerV2.BatchUpdateHandler)
+	router.POST("/value/", handlerV2.GetHandler)
+	router.POST("/update/", handlerV2.UpdateHandler)
+	router.POST("/updates/", handlerV2.BatchUpdateHandler)
 
 	srv := &http.Server{Handler: router}
 	return &API{

@@ -3,6 +3,9 @@ package transport
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,15 +18,17 @@ import (
 )
 
 type HTTPClient struct {
-	ServerHost     string
-	MetricEndpoint string
+	serverHost     string
+	metricEndpoint string
+	signHashKey    string
 	client         *http.Client
 }
 
-func NewClient(serverHost string) *HTTPClient {
+func NewClient(serverHost string, signHashKey string) *HTTPClient {
 	return &HTTPClient{
-		ServerHost:     serverHost,
-		MetricEndpoint: "/updates",
+		serverHost:     serverHost,
+		signHashKey:    signHashKey,
+		metricEndpoint: "/updates",
 		client:         &http.Client{},
 	}
 }
@@ -43,8 +48,14 @@ func (c *HTTPClient) compress(data *[]byte) (*bytes.Buffer, error) {
 	return &buf, nil
 }
 
+func (c *HTTPClient) sign(data *[]byte) string {
+	h := hmac.New(sha256.New, []byte(c.signHashKey))
+	h.Write(*data)
+	return hex.EncodeToString(h.Sum(nil))
+}
+
 // HTTTP Client to sent metrics to MetricEndpoint
-func (c *HTTPClient) SendMetric(data []*model.MetricsV2) error {
+func (c *HTTPClient) SendMetric(data []model.MetricsV2) error {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("error marshalling request body: %w", err)
@@ -55,13 +66,19 @@ func (c *HTTPClient) SendMetric(data []*model.MetricsV2) error {
 		return fmt.Errorf("error compressiong request body: %w", err)
 	}
 
-	url := fmt.Sprintf(c.ServerHost + c.MetricEndpoint)
+	url := fmt.Sprintf(c.serverHost + c.metricEndpoint)
 	req, err := http.NewRequest("POST", url, buf)
 	if err != nil {
 		return fmt.Errorf("request creation error: %w", err)
 	}
 	req.Header.Set("Content-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
+
+	if c.signHashKey != "" {
+		signature := c.sign(&body)
+		logger.Log.Debug(fmt.Sprintf("signature for body - %s", string(signature)))
+		req.Header.Set("HashSHA256", string(signature))
+	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {

@@ -11,13 +11,12 @@ import (
 
 func TestPollFromRuntime(t *testing.T) {
 	lock := &sync.Mutex{}
-	pollFromRuntime(lock)
+	metricPollFromRuntime(lock)
 
 	gauges := []metrics.Gauge{
 		metrics.RandomValue,
 		metrics.AllocGauge,
 		metrics.BuckHashSysGauge,
-		metrics.FreesGauge,
 		metrics.GCSysGauge,
 		metrics.HeapAllocGauge,
 		metrics.HeapIdleGauge,

@@ -57,7 +57,7 @@ func run(ctx context.Context, cfg *config.Config) error {
 	metricService := service.NewMetricService(store)
 	systemService := service.NewSystemService(store)
 	logger.Log.Info("Service initialized")
-	api := rest.NewAPI(metricService, systemService)
+	api := rest.NewAPI(cfg, metricService, systemService)
 
 	// https://github.com/gin-gonic/gin/blob/master/docs/doc.md#manually
 	// Initializing the server in a goroutine so that

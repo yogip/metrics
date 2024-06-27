@@ -18,16 +18,137 @@ import (
 	"metrics/internal/logger"
 	"metrics/internal/retrier"
 
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 	"go.uber.org/zap"
 )
 
-func pollFromRuntime(lock *sync.Mutex) {
-	if !lock.TryLock() {
-		logger.Log.Warn("Skip gathering metrics")
+func Run(config *config.AgentConfig) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	lock := &sync.Mutex{}
+
+	go metricRuntimePoller(ctx, config, lock)
+	go metricPollerPsutils(ctx, config, lock)
+
+	go metricReporter(ctx, config, lock)
+
+	<-quit
+	logger.Log.Info("Received Ctrl+C, stopping...")
+	cancel()
+}
+
+func metricReporter(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
+	reportTicker := time.NewTicker(time.Duration(cfg.ReportInterval) * time.Second)
+	defer reportTicker.Stop()
+
+	metricsCh := make(chan []model.MetricsV2, cfg.RateLimit)
+	for i := 0; i < cfg.RateLimit; i++ {
+		go metricReporterWorker(ctx, cfg, metricsCh, i)
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Log.Info("Stop posting metrics")
+			return
+		case <-reportTicker.C:
+			lock.Lock()
+			data := make([]model.MetricsV2, 0, len(metrics.AllMetrics))
+			for _, metric := range metrics.AllMetrics {
+				data = append(data, metric.Payload())
+				metric.WasSent()
+			}
+			lock.Unlock()
+
+			metricsCh <- data
+		}
+	}
+
+}
+
+func metricReporterWorker(
+	ctx context.Context,
+	cfg *config.AgentConfig,
+	metricsCh chan []model.MetricsV2,
+	workerID int,
+) {
+	logger.Log.Info(fmt.Sprintf("Start worker N: %d", workerID))
+	client := transport.NewClient(cfg.ServerAddresPort, cfg.HashKey)
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Log.Info("Exit from metricReporterWorker")
+			return
+		case data := <-metricsCh:
+			postMetrics(ctx, client, data, workerID)
+		}
+	}
+}
+
+func postMetrics(ctx context.Context, client metrics.Transporter, data []model.MetricsV2, workerID int) {
+	logger.Log.Debug(fmt.Sprintf("Reporting metrics. Worker ID: %d", workerID))
+
+	ret := &retrier.Retrier{
+		Strategy: retrier.Backoff(
+			3,             // max attempts
+			1*time.Second, // initial delay
+			3,             // multiplier
+			5*time.Second, // max delay
+		),
+		OnRetry: func(ctx context.Context, n int, err error) {
+			logger.Log.Debug(fmt.Sprintf("reportMetrics retry #%d: %v", n, err))
+		},
+	}
+
+	fun := func() error {
+		return client.SendMetric(data)
+	}
+
+	if err := ret.Do(ctx, fun, syscall.ECONNREFUSED); err != nil {
+		logger.Log.Error("sending metric error", zap.String("error", err.Error()))
 		return
 	}
+}
+
+func metricRuntimePoller(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
+	pollTicker := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
+	defer pollTicker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Log.Info("Stop to poll Runtime metrics...")
+			return
+		case <-pollTicker.C:
+			metricPollFromRuntime(lock)
+		}
+	}
+}
+
+func metricPollerPsutils(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
+	pollTicker := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
+	defer pollTicker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Log.Info("Stop to poll Psutils metrics...")
+			return
+		case <-pollTicker.C:
+			metricPollFromPsutils(lock)
+		}
+	}
+}
+
+func metricPollFromRuntime(lock *sync.Mutex) {
+	logger.Log.Debug("Gathering Runtime metrics")
+	lock.Lock()
 	defer lock.Unlock()
-	logger.Log.Debug("Gathering metrics")
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -68,68 +189,23 @@ func pollFromRuntime(lock *sync.Mutex) {
 	metrics.TotalAllocGauge.Set(float64(rtm.TotalAlloc))
 }
 
-func reportMetrics(ctx context.Context, client metrics.Transporter, lock *sync.Mutex) {
-	if !lock.TryLock() {
-		logger.Log.Warn("Skip reporting all metrics")
-		return
-	}
+func metricPollFromPsutils(lock *sync.Mutex) {
+	logger.Log.Debug("Gathering psutils metrics")
+	lock.Lock()
 	defer lock.Unlock()
-	logger.Log.Debug("Reporting all metrics")
-
-	ret := &retrier.Retrier{
-		Strategy: retrier.Backoff(
-			3,             // max attempts
-			1*time.Second, // initial delay
-			3,             // multiplier
-			5*time.Second, // max delay
-		),
-		OnRetry: func(ctx context.Context, n int, err error) {
-			logger.Log.Debug(fmt.Sprintf("reportMetrics retry #%d: %v", n, err))
-		},
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		logger.Log.Error("Could not pull gopsutil metrics")
 	}
 
-	data := []*model.MetricsV2{}
-	for _, metric := range metrics.AllMetrics {
-		data = append(data, metric.Payload())
+	metrics.TotalMemory.Set(float64(v.Total))
+	metrics.FreeMemory.Set(float64(v.Free))
+
+	cpus, err := cpu.Percent(time.Second, true)
+	if err != nil {
+		logger.Log.Error("Could not pull gopsutil cpu utilization")
 	}
-
-	fun := func() error {
-		return client.SendMetric(data)
-	}
-
-	if err := ret.Do(ctx, fun, syscall.ECONNREFUSED); err != nil {
-		logger.Log.Error("sending metric error", zap.String("error", err.Error()))
-		return
-	}
-	for _, metric := range metrics.AllMetrics {
-		metric.WasSend()
-	}
-}
-
-func Run(config *config.AgentConfig) {
-	pollTicker := time.NewTicker(time.Duration(config.PollInterval) * time.Second)
-	defer pollTicker.Stop()
-
-	reportTicker := time.NewTicker(time.Duration(config.ReportInterval) * time.Second)
-	defer reportTicker.Stop()
-
-	client := transport.NewClient(config.ServerAddresPort)
-	ctx, cancel := context.WithCancel(context.Background())
-
-	lock := &sync.Mutex{}
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	for {
-		select {
-		case <-quit:
-			logger.Log.Info("Received Ctrl+C, stopping...")
-			cancel()
-			return
-		case <-pollTicker.C:
-			go pollFromRuntime(lock)
-		case <-reportTicker.C:
-			go reportMetrics(ctx, client, lock)
-		}
+	for i, cpu := range cpus {
+		metrics.CPUutilizations[i].Set(cpu)
 	}
 }
