@@ -18,6 +18,8 @@ import (
 	"metrics/internal/logger"
 	"metrics/internal/retrier"
 
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 	"go.uber.org/zap"
 )
 
@@ -29,7 +31,9 @@ func Run(config *config.AgentConfig) {
 
 	lock := &sync.Mutex{}
 
-	go metricPoller(ctx, config, lock)
+	go metricRuntimePoller(ctx, config, lock)
+	go metricPollerPsutils(ctx, config, lock)
+
 	go metricReporter(ctx, config, lock)
 
 	<-quit
@@ -53,8 +57,7 @@ func metricReporter(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mut
 			return
 		case <-reportTicker.C:
 			lock.Lock()
-
-			data := []model.MetricsV2{}
+			data := make([]model.MetricsV2, 0, len(metrics.AllMetrics))
 			for _, metric := range metrics.AllMetrics {
 				data = append(data, metric.Payload())
 				metric.WasSent()
@@ -112,14 +115,14 @@ func postMetrics(ctx context.Context, client metrics.Transporter, data []model.M
 	}
 }
 
-func metricPoller(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
+func metricRuntimePoller(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
 	pollTicker := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
 	defer pollTicker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Log.Info("Stop to poll metrics...")
+			logger.Log.Info("Stop to poll Runtime metrics...")
 			return
 		case <-pollTicker.C:
 			metricPollFromRuntime(lock)
@@ -127,8 +130,23 @@ func metricPoller(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex
 	}
 }
 
+func metricPollerPsutils(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
+	pollTicker := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
+	defer pollTicker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Log.Info("Stop to poll Psutils metrics...")
+			return
+		case <-pollTicker.C:
+			metricPollFromPsutils(lock)
+		}
+	}
+}
+
 func metricPollFromRuntime(lock *sync.Mutex) {
-	logger.Log.Debug("Gathering metrics")
+	logger.Log.Debug("Gathering Runtime metrics")
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -169,4 +187,25 @@ func metricPollFromRuntime(lock *sync.Mutex) {
 	metrics.StackSysGauge.Set(float64(rtm.StackSys))
 	metrics.SysGauge.Set(float64(rtm.Sys))
 	metrics.TotalAllocGauge.Set(float64(rtm.TotalAlloc))
+}
+
+func metricPollFromPsutils(lock *sync.Mutex) {
+	logger.Log.Debug("Gathering psutils metrics")
+	lock.Lock()
+	defer lock.Unlock()
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		logger.Log.Error("Could not pull gopsutil metrics")
+	}
+
+	metrics.TotalMemory.Set(float64(v.Total))
+	metrics.FreeMemory.Set(float64(v.Free))
+
+	cpus, err := cpu.Percent(time.Second, true)
+	if err != nil {
+		logger.Log.Error("Could not pull gopsutil cpu utilization")
+	}
+	for i, cpu := range cpus {
+		metrics.CPUutilizations[i].Set(cpu)
+	}
 }

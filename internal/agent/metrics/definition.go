@@ -1,7 +1,9 @@
 package metrics
 
 import (
+	"fmt"
 	"metrics/internal/core/model"
+	"runtime"
 )
 
 var PollCountCounter = Counter{model.Counter{Name: "PollCount"}}
@@ -35,10 +37,9 @@ var StackSysGauge = Gauge{model.Gauge{Name: "StackSys"}}
 var SysGauge = Gauge{model.Gauge{Name: "Sys"}}
 var TotalAllocGauge = Gauge{model.Gauge{Name: "TotalAlloc"}}
 
-// todo
-// var TotalMemory = Gauge{model.Gauge{Name: "TotalMemory"}}
-// var FreeMemory = Gauge{model.Gauge{Name: "FreeMemory"}}
-// var CPUutilization1 = Gauge{model.Gauge{Name: "CPUutilization1"}}
+var TotalMemory = Gauge{model.Gauge{Name: "TotalMemory"}}
+var FreeMemory = Gauge{model.Gauge{Name: "FreeMemory"}}
+var CPUutilizations = make([]*Gauge, 0, runtime.NumCPU()) // init inside init function
 
 var AllMetrics []Metric = []Metric{
 	&PollCountCounter,
@@ -70,4 +71,14 @@ var AllMetrics []Metric = []Metric{
 	&StackSysGauge,
 	&SysGauge,
 	&TotalAllocGauge,
+	&TotalMemory,
+	&FreeMemory,
+}
+
+func init() {
+	for i := 1; i <= runtime.NumCPU(); i++ {
+		gauge := Gauge{model.Gauge{Name: fmt.Sprintf("CPUutilization%d", i)}}
+		CPUutilizations = append(CPUutilizations, &gauge)
+		AllMetrics = append(AllMetrics, &gauge)
+	}
 }

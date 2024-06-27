@@ -29,7 +29,8 @@ type Counter struct {
 }
 
 func (c *Counter) Payload() model.MetricsV2 {
-	return model.MetricsV2{ID: c.Name, MType: c.Type(), Delta: &c.Value}
+	value := c.Value // Create new variable due to prevent of erasing by WasSent
+	return model.MetricsV2{ID: c.Name, MType: c.Type(), Delta: &value}
 }
 
 func (c *Counter) WasSent() {
