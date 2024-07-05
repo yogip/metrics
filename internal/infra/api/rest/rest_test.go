@@ -285,6 +285,7 @@ func TestUpdateHandler(t *testing.T) {
 			},
 		},
 	}
+
 	store, err := memory.NewStore(&config.StorageConfig{
 		StoreIntreval:   1000,
 		FileStoragePath: "/tmp/storage_dump.json",
@@ -299,11 +300,12 @@ func TestUpdateHandler(t *testing.T) {
 
 	systemService := service.NewSystemService(dbMockStore)
 
-	api := NewAPI(metricService, systemService)
+	cfg := config.Config{HashKey: ""}
+	api := NewAPI(&cfg, metricService, systemService)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			url := fmt.Sprintf("/update/%s/%s/%s", test.metricType, test.metricName, test.value)
+			url := fmt.Sprintf("/update/%s/%s/%s/", test.metricType, test.metricName, test.value)
 			request := httptest.NewRequest(test.method, url, nil)
 
 			w := httptest.NewRecorder()

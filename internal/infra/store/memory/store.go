@@ -55,7 +55,7 @@ func (s *Store) Close() {
 	close(s.quit)
 }
 
-func (s *Store) GetGauge(ctx context.Context, req *model.MetricsV2) (*model.Gauge, error) {
+func (s *Store) GetGauge(_ context.Context, req *model.MetricsV2) (*model.Gauge, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
@@ -66,7 +66,7 @@ func (s *Store) GetGauge(ctx context.Context, req *model.MetricsV2) (*model.Gaug
 	return res, nil
 }
 
-func (s *Store) SetGauge(ctx context.Context, gauge *model.Gauge) error {
+func (s *Store) SetGauge(_ context.Context, gauge *model.Gauge) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
@@ -77,7 +77,7 @@ func (s *Store) SetGauge(ctx context.Context, gauge *model.Gauge) error {
 	return nil
 }
 
-func (s *Store) GetCounter(ctx context.Context, req *model.MetricsV2) (*model.Counter, error) {
+func (s *Store) GetCounter(_ context.Context, req *model.MetricsV2) (*model.Counter, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
@@ -88,7 +88,7 @@ func (s *Store) GetCounter(ctx context.Context, req *model.MetricsV2) (*model.Co
 	return res, nil
 }
 
-func (s *Store) SetCounter(ctx context.Context, counter *model.Counter) error {
+func (s *Store) SetCounter(_ context.Context, counter *model.Counter) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
@@ -148,7 +148,7 @@ func (s *Store) BatchUpsertMetrics(ctx context.Context, metrics []*model.Metrics
 	return results, nil
 }
 
-func (s *Store) ListGauge(ctx context.Context) ([]*model.Gauge, error) {
+func (s *Store) ListGauge(_ context.Context) ([]*model.Gauge, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
@@ -159,7 +159,7 @@ func (s *Store) ListGauge(ctx context.Context) ([]*model.Gauge, error) {
 	return res, nil
 }
 
-func (s *Store) ListCounter(ctx context.Context) ([]*model.Counter, error) {
+func (s *Store) ListCounter(_ context.Context) ([]*model.Counter, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
@@ -252,6 +252,6 @@ func (s *Store) dumpPeriodicly() {
 	}
 }
 
-func (s *Store) Ping(ctx context.Context) error {
+func (s *Store) Ping(_ context.Context) error {
 	return errors.New("memory store not supported ping")
 }

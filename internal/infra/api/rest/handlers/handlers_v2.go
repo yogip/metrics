@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -24,8 +25,8 @@ func NewHandlerV2(metricService *service.MetricService) *HandlerV2 {
 func (h *HandlerV2) UpdateHandler(ctx *gin.Context) {
 	req := &model.MetricsV2{}
 	if err := ctx.ShouldBindBodyWithJSON(&req); err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
 		logger.Log.Error("Error binding uri", zap.Error(err))
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"status": false, "message": fmt.Sprintf("Error binding body: %s", err)})
 		return
 	}
 	log := logger.Log.With(
@@ -41,8 +42,10 @@ func (h *HandlerV2) UpdateHandler(ctx *gin.Context) {
 
 	metric, err := h.metricService.UpsertMetricValue(tOutCtx, req)
 	if err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
-		log.Error("Error setting metric value", zap.Error(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusBadRequest,
+			gin.H{"status": false, "message": fmt.Sprintf("Error setting metric value: %s", err)},
+		)
 		return
 	}
 	ctx.JSON(http.StatusOK, metric)
@@ -51,16 +54,22 @@ func (h *HandlerV2) UpdateHandler(ctx *gin.Context) {
 func (h *HandlerV2) BatchUpdateHandler(ctx *gin.Context) {
 	req := []*model.MetricsV2{}
 	if err := ctx.ShouldBindBodyWithJSON(&req); err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
 		logger.Log.Error("Error binding body", zap.Error(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusBadRequest,
+			gin.H{"status": false, "message": fmt.Sprintf("Error binding body: %s", err)},
+		)
 		return
 	}
 	logger.Log.Debug("Getting update request")
 
 	metrics, err := h.metricService.BatchUpsertMetricValue(ctx, req)
 	if err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
 		logger.Log.Error("Batch update error", zap.Error(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusBadRequest,
+			gin.H{"status": false, "message": fmt.Sprintf("Batch upsert error: %s", err)},
+		)
 		return
 	}
 	ctx.JSON(http.StatusOK, metrics)
@@ -69,8 +78,11 @@ func (h *HandlerV2) BatchUpdateHandler(ctx *gin.Context) {
 func (h *HandlerV2) GetHandler(ctx *gin.Context) {
 	req := &model.MetricsV2{}
 	if err := ctx.ShouldBindBodyWithJSON(&req); err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
 		logger.Log.Error("Error binding uri", zap.Error(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusNotFound,
+			gin.H{"status": false, "message": fmt.Sprintf("Error binding body: %s", err)},
+		)
 		return
 	}
 	log := logger.Log.With(
@@ -82,13 +94,18 @@ func (h *HandlerV2) GetHandler(ctx *gin.Context) {
 
 	metric, err := h.metricService.GetMetric(ctx, req)
 	if err != nil {
-		ctx.String(http.StatusBadRequest, err.Error())
 		logger.Log.Error("Error getting metric", zap.Error(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusBadRequest,
+			gin.H{"status": false, "message": fmt.Sprintf("Error getting metric: %s", err)},
+		)
 		return
 	}
 	if metric == nil {
-		ctx.String(http.StatusNotFound, "Not found")
-		logger.Log.Error("Metric not found", zap.Error(err))
+		ctx.AbortWithStatusJSON(
+			http.StatusNotFound,
+			gin.H{"status": false, "message": "Not found"},
+		)
 		return
 	}
 
