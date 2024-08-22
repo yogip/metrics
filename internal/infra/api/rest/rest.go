@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -48,7 +49,7 @@ func NewAPI(cfg *config.Config, metricService *service.MetricService, systemServ
 	router.Use(gin.Recovery())
 	router.Use(middlewares.GzipDecompressMiddleware())
 	router.Use(middlewares.GzipCompressMiddleware())
-	logger.Log.Info(fmt.Sprintf("--!! build router with HashKey: %s", cfg.HashKey)) // todo -
+
 	if cfg.HashKey != "" {
 		router.Use(middlewares.VerifySignature(cfg.HashKey))
 		router.Use(middlewares.SignBody(cfg.HashKey))
@@ -64,6 +65,7 @@ func NewAPI(cfg *config.Config, metricService *service.MetricService, systemServ
 	router.POST("/update/", handlerV2.UpdateHandler)
 	router.POST("/updates/", handlerV2.BatchUpdateHandler)
 
+	pprof.Register(router)
 	srv := &http.Server{Handler: router}
 	return &API{
 		srv: srv,
