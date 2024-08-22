@@ -6,8 +6,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"io"
-	"metrics/internal/logger"
 	"net/http"
+
+	"metrics/internal/logger"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

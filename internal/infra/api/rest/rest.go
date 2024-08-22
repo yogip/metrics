@@ -3,13 +3,14 @@ package rest
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
+
 	"metrics/internal/core/config"
 	"metrics/internal/core/service"
 	"metrics/internal/infra/api/rest/handlers"
 	"metrics/internal/infra/api/rest/middlewares"
 	"metrics/internal/logger"
-	"net/http"
-	"time"
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"

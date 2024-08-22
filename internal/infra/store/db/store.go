@@ -7,12 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"syscall"
+	"time"
+
 	"metrics/internal/core/config"
 	"metrics/internal/core/model"
 	"metrics/internal/logger"
 	"metrics/internal/retrier"
-	"syscall"
-	"time"
 
 	"github.com/jackc/pgx"
 	"go.uber.org/zap"

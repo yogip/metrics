@@ -1,9 +1,10 @@
 package handlers
 
 import (
+	"net/http"
+
 	"metrics/internal/core/service"
 	"metrics/internal/logger"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

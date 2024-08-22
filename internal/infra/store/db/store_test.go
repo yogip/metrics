@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
 	"metrics/internal/core/model"
 
 	"testing"

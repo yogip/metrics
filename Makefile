@@ -12,3 +12,6 @@ server:
 
 agent:
 	go run cmd/agent/main.go -v debug -k SomeKey -l 3
+
+fmt:
+	goimports -local "metrics" -w .

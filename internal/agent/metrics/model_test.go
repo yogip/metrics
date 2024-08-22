@@ -1,8 +1,9 @@
 package metrics
 
 import (
-	"metrics/internal/core/model"
 	"testing"
+
+	"metrics/internal/core/model"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -11,8 +11,9 @@ package mocks
 
 import (
 	context "context"
-	model "metrics/internal/core/model"
 	reflect "reflect"
+
+	model "metrics/internal/core/model"
 
 	gomock "go.uber.org/mock/gomock"
 )
