@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"errors"
-	"metrics/internal/core/service"
-	"metrics/internal/mocks"
 	"net/http/httptest"
 	"testing"
+
+	"metrics/internal/core/service"
+	"metrics/internal/mocks"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"

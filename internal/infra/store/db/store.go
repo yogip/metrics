@@ -7,12 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"syscall"
+	"time"
+
 	"metrics/internal/core/config"
 	"metrics/internal/core/model"
 	"metrics/internal/logger"
 	"metrics/internal/retrier"
-	"syscall"
-	"time"
 
 	"github.com/jackc/pgx"
 	"go.uber.org/zap"
@@ -32,12 +33,7 @@ var recoverableErrors = []error{
 	io.EOF,
 }
 
-func NewStore(cfg *config.StorageConfig) (*Store, error) {
-	db, err := sql.Open("pgx", cfg.DatabaseDSN)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Database: %w", err)
-	}
-
+func newStore(db *sql.DB) *Store {
 	ret := &retrier.Retrier{
 		Strategy: retrier.Backoff(
 			3,             // max attempts
@@ -53,7 +49,16 @@ func NewStore(cfg *config.StorageConfig) (*Store, error) {
 	store := &Store{db: db, retrier: ret}
 
 	logger.Log.Info("DB Store initialized")
-	return store, nil
+	return store
+}
+
+func NewStore(cfg *config.StorageConfig) (*Store, error) {
+	db, err := sql.Open("pgx", cfg.DatabaseDSN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Database: %w", err)
+	}
+
+	return newStore(db), nil
 }
 
 func (s *Store) Close() {

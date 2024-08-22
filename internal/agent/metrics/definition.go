@@ -2,8 +2,9 @@ package metrics
 
 import (
 	"fmt"
-	"metrics/internal/core/model"
 	"runtime"
+
+	"metrics/internal/core/model"
 )
 
 var PollCountCounter = Counter{model.Counter{Name: "PollCount"}}

@@ -6,12 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"metrics/internal/core/config"
-	"metrics/internal/core/model"
-	"metrics/internal/logger"
 	"os"
 	"sync"
 	"time"
+
+	"metrics/internal/core/config"
+	"metrics/internal/core/model"
+	"metrics/internal/logger"
 
 	"go.uber.org/zap"
 )

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+
 	"metrics/internal/agent"
 	"metrics/internal/agent/config"
 	"metrics/internal/logger"
