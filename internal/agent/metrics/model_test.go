@@ -11,8 +11,8 @@ func TestPayload(t *testing.T) {
 	var delta10 int64 = 10
 	var delta101 int64 = 101
 
-	var value10 float64 = 10.0
-	var value101 float64 = 101.0
+	value10 := 10.0
+	value101 := 101.0
 
 	tests := []struct {
 		name   string
@@ -88,8 +88,8 @@ func TestWasSent(t *testing.T) {
 	var delta10 int64 = 10
 	var delta101 int64 = 101
 
-	var value10 float64 = 10.0
-	var value101 float64 = 101.0
+	value10 := 10.0
+	value101 := 101.0
 
 	tests := []struct {
 		name   string
