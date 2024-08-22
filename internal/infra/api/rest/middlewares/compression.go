@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var validContentTypes = []string{"application/json", "text/html", ""}
+
 type gzipResponseWriter struct {
 	gin.ResponseWriter
 	Writer *gzip.Writer
@@ -28,7 +30,6 @@ func GzipCompressMiddleware() gin.HandlerFunc {
 			return
 		}
 		isValidContentType := false
-		validContentTypes := []string{"application/json", "text/html", ""}
 		for _, validContentType := range validContentTypes {
 			if c.GetHeader("Content-Type") == validContentType {
 				isValidContentType = true

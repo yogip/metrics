@@ -35,11 +35,18 @@ func NewMetricService(store Store) *MetricService {
 }
 
 func (m *MetricService) ListMetrics(ctx context.Context) (*model.ListMetricResponse, error) {
-	result := model.ListMetricResponse{Metrics: []*model.MetricResponse{}}
 	gagues, err := m.store.ListGauge(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list gauges: %w", err)
 	}
+
+	counters, err := m.store.ListCounter(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list gauges: %w", err)
+	}
+
+	result := model.ListMetricResponse{Metrics: make([]*model.MetricResponse, 0, len(gagues)+len(counters))}
+
 	for _, gauge := range gagues {
 		result.Metrics = append(
 			result.Metrics,
@@ -51,10 +58,6 @@ func (m *MetricService) ListMetrics(ctx context.Context) (*model.ListMetricRespo
 		)
 	}
 
-	counters, err := m.store.ListCounter(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list gauges: %w", err)
-	}
 	for _, counter := range counters {
 		result.Metrics = append(
 			result.Metrics,
