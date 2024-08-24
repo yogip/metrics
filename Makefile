@@ -4,7 +4,8 @@ mock:
 	mockgen -destination=internal/mocks/mock_db_store.go -package=mocks metrics/internal/core/service Store	
 
 test:
-	go test -v -coverpkg=./... -coverprofile=profile.cov ./...
+	go test -v -coverpkg=./... -coverprofile=profile.cov.tmp ./...
+	grep -Ev "mock|swagger" profile.cov.tmp > profile.cov
 	go tool cover -func profile.cov
 
 server:
@@ -15,3 +16,9 @@ agent:
 
 fmt:
 	goimports -local "metrics" -w .
+
+doc:
+	godoc -http=:8000 -goroot=$(shell pwd)
+
+swag:
+	swag init -g ./cmd/server/main.go --output ./swagger

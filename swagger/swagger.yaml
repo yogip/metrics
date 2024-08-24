@@ -1,0 +1,206 @@
+definitions:
+  model.MetricType:
+    enum:
+    - gauge
+    - counter
+    type: string
+    x-enum-varnames:
+    - GaugeType
+    - CounterType
+  model.MetricsV2:
+    properties:
+      delta:
+        type: integer
+      id:
+        type: string
+      type:
+        $ref: '#/definitions/model.MetricType'
+      value:
+        type: number
+    type: object
+info:
+  contact: {}
+paths:
+  /:
+    get:
+      description: Get metric all from storage
+      operationId: ListHandler
+      responses:
+        "200":
+          description: Metrics list
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Inernal Server Error
+          schema:
+            type: string
+      summary: List metrics
+      tags:
+      - V1 API
+  /update/:
+    post:
+      consumes:
+      - application/json
+      operationId: UpdateHandlerV2
+      parameters:
+      - description: Metric Name
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.MetricsV2'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.MetricsV2'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Inernal Server Error
+          schema:
+            type: string
+      summary: Update metrics
+      tags:
+      - V2 API
+  /update/{type}/{name}/:
+    get:
+      description: Get metric from storage
+      operationId: GetHandler
+      parameters:
+      - description: Metric name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Metric type
+        in: path
+        name: type
+        required: true
+        type: string
+      responses:
+        "200":
+          description: Ok
+          schema:
+            type: string
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Not found
+          schema:
+            type: string
+        "500":
+          description: Inernal Server Error
+          schema:
+            type: string
+      summary: Get metric
+      tags:
+      - V1 API
+  /update/{type}/{name}/{value}/:
+    post:
+      operationId: UpdateHandler
+      parameters:
+      - description: Metric name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Metric type
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: 'Metric value '
+        in: path
+        name: value
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Inernal Server Error
+          schema:
+            type: string
+      summary: Update metrics
+      tags:
+      - V1 API
+  /updates/:
+    post:
+      consumes:
+      - application/json
+      operationId: BatchUpdateHandler
+      parameters:
+      - description: Metrics request
+        in: body
+        name: req
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/model.MetricsV2'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.MetricsV2'
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Inernal Server Error
+          schema:
+            type: string
+      summary: Batch update
+      tags:
+      - V2 API
+  /value/:
+    post:
+      consumes:
+      - application/json
+      operationId: GetHandlerV2
+      parameters:
+      - description: Metric request
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/model.MetricsV2'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.MetricsV2'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Inernal Server Error
+          schema:
+            type: string
+      summary: Get metrics
+      tags:
+      - V2 API
+swagger: "2.0"

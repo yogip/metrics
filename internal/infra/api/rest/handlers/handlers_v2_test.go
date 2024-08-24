@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -201,4 +202,36 @@ func TestGetHandler(t *testing.T) {
 			assert.JSONEq(t, tt.want.response, w.Body.String())
 		})
 	}
+}
+
+func ExampleHandlerV2_UpdateHandler(t *testing.T) {
+	var ten int64 = 10
+
+	metric := model.MetricsV2{
+		ID:    "counter",
+		MType: model.CounterType,
+		Delta: &ten,
+	}
+
+	store, err := memory.NewStore(&config.StorageConfig{Restore: false})
+	assert.NoError(t, err)
+
+	service := service.NewMetricService(store)
+	handler := NewHandlerV2(service)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	body, _ := json.Marshal(metric)
+
+	c.Request = httptest.NewRequest(http.MethodPost, "/update", strings.NewReader(string(body)))
+
+	handler.UpdateHandler(c)
+
+	fmt.Println(w.Code)
+	fmt.Println(w.Body.String())
+
+	// Output:
+	// 200
+	// {"delta":10, "id":"counter", "type":"counter"}
 }

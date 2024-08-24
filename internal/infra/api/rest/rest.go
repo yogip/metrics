@@ -1,3 +1,4 @@
+// REST API server implementation.
 package rest
 
 import (
@@ -40,6 +41,7 @@ func ZapLogger(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
+// NewAPI creates a new http.Server with gin routing and middlewares.
 func NewAPI(cfg *config.Config, metricService *service.MetricService, systemService *service.SystemService) *API {
 	serviceHandler := handlers.NewSystemHandler(systemService)
 	handlerV1 := handlers.NewHandlerV1(metricService)
@@ -73,12 +75,14 @@ func NewAPI(cfg *config.Config, metricService *service.MetricService, systemServ
 	}
 }
 
+// Run API server. It blocks until the server is stopped.
 func (api *API) Run(runAddr string) error {
 	logger.Log.Info("Run API server", zap.String("Addres", runAddr))
 	api.srv.Addr = runAddr
 	return api.srv.ListenAndServe()
 }
 
+// Shutdown API server. It blocks until the server is stopped. Under the hood calls http.Server.Shutdown.
 func (api *API) Shutdown(ctx context.Context) error {
 	return api.srv.Shutdown(ctx)
 }

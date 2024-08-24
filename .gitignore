@@ -7,10 +7,11 @@
 
 # Test binary, built with `go test -c`
 *.test
-*.cov
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+*.cov
+*.tmp
 
 # Binaries
 cmd/agent/main

@@ -1,3 +1,6 @@
+// V1 version of API handlers.
+// The API provides methods for create, update, get and list metics.
+// V2 is prefered to usage.
 package handlers
 
 import (
@@ -13,6 +16,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// @Title Metrics REST API V1
+// @Version 1.0
+
 type HandlerV1 struct {
 	metricService *service.MetricService
 }
@@ -21,6 +27,18 @@ func NewHandlerV1(metricService *service.MetricService) *HandlerV1 {
 	return &HandlerV1{metricService: metricService}
 }
 
+// Update metrics API handler
+// @Tags V1 API
+// @Summary Update metrics
+// @Description
+// @ID UpdateHandler
+// @Param name path string true "Metric name"
+// @Param type path string true "Metric type"
+// @Param value path string true "Metric value "
+// @Success 200
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Inernal Server Error"
+// @Router /update/{type}/{name}/{value}/ [POST]
 func (h *HandlerV1) UpdateHandler(ctx *gin.Context) {
 	req := &model.MetricUpdateRequest{}
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -50,6 +68,18 @@ func (h *HandlerV1) UpdateHandler(ctx *gin.Context) {
 	}
 }
 
+// Get metric API handler
+// @Tags V1 API
+// @Summary Get metric
+// @Description Get metric from storage
+// @ID GetHandler
+// @Param name path string true "Metric name"
+// @Param type path string true "Metric type"
+// @Success 200 {string} string "Ok"
+// @Failure 400 {string} string "Bad request"
+// @Failure 404 {string} string "Not found"
+// @Failure 500 {string} string "Inernal Server Error"
+// @Router /update/{type}/{name}/ [GET]
 func (h *HandlerV1) GetHandler(ctx *gin.Context) {
 	req := &model.MetricRequest{}
 	if err := ctx.ShouldBindUri(&req); err != nil {
@@ -90,6 +120,15 @@ func (h *HandlerV1) GetHandler(ctx *gin.Context) {
 	}
 }
 
+// List all metrics API handler
+// @Tags V1 API
+// @Summary List metrics
+// @Description Get metric all from storage
+// @ID ListHandler
+// @Success 200 {string} string "Metrics list"
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Inernal Server Error"
+// @Router / [GET]
 func (h *HandlerV1) ListHandler(ctx *gin.Context) {
 	metrics, err := h.metricService.ListMetrics(ctx)
 	if err != nil {
