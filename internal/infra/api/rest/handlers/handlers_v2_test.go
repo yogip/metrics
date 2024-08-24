@@ -204,7 +204,7 @@ func TestGetHandler(t *testing.T) {
 	}
 }
 
-func ExampleHandlerV2_UpdateHandler(t *testing.T) {
+func ExampleHandlerV2_UpdateHandler() {
 	var ten int64 = 10
 
 	metric := model.MetricsV2{
@@ -213,8 +213,7 @@ func ExampleHandlerV2_UpdateHandler(t *testing.T) {
 		Delta: &ten,
 	}
 
-	store, err := memory.NewStore(&config.StorageConfig{Restore: false})
-	assert.NoError(t, err)
+	store, _ := memory.NewStore(&config.StorageConfig{Restore: false})
 
 	service := service.NewMetricService(store)
 	handler := NewHandlerV2(service)
