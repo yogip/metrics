@@ -1,3 +1,5 @@
+// V2 version of API handlers.
+// The API provides methods for create, update, batch update, get and list metics.
 package handlers
 
 import (
@@ -14,6 +16,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// @Title Metrics REST API V2
+// @Version 2.0
+
 type HandlerV2 struct {
 	metricService *service.MetricService
 }
@@ -22,6 +27,18 @@ func NewHandlerV2(metricService *service.MetricService) *HandlerV2 {
 	return &HandlerV2{metricService: metricService}
 }
 
+// Update metrics API handler
+// @Tags V2 API
+// @Summary Update metrics
+// @Description
+// @ID UpdateHandlerV2
+// @Accept  json
+// @Produce json
+// @Param req body model.MetricsV2 true "Metric Name"
+// @Success 200 {object} model.MetricsV2
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Inernal Server Error"
+// @Router /update/ [POST]
 func (h *HandlerV2) UpdateHandler(ctx *gin.Context) {
 	req := &model.MetricsV2{}
 	if err := ctx.ShouldBindBodyWithJSON(&req); err != nil {
@@ -51,6 +68,18 @@ func (h *HandlerV2) UpdateHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, metric)
 }
 
+// Batch metrics update API handler
+// @Tags V2 API
+// @Summary Batch update
+// @Description
+// @ID BatchUpdateHandler
+// @Accept  json
+// @Produce json
+// @Param req body []model.MetricsV2 true "Metrics request"
+// @Success 200 {object} []model.MetricsV2
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Inernal Server Error"
+// @Router /updates/ [POST]
 func (h *HandlerV2) BatchUpdateHandler(ctx *gin.Context) {
 	req := []*model.MetricsV2{}
 	if err := ctx.ShouldBindBodyWithJSON(&req); err != nil {
@@ -75,6 +104,18 @@ func (h *HandlerV2) BatchUpdateHandler(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, metrics)
 }
 
+// Get metrics API handler
+// @Tags V2 API
+// @Summary Get metrics
+// @Description
+// @ID GetHandlerV2
+// @Accept  json
+// @Produce json
+// @Param req body model.MetricsV2 true "Metric request"
+// @Success 200 {object} model.MetricsV2
+// @Failure 400 {string} string "Bad request"
+// @Failure 500 {string} string "Inernal Server Error"
+// @Router /value/ [POST]
 func (h *HandlerV2) GetHandler(ctx *gin.Context) {
 	req := &model.MetricsV2{}
 	if err := ctx.ShouldBindBodyWithJSON(&req); err != nil {

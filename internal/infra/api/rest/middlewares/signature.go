@@ -5,10 +5,10 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"io"
-	"metrics/internal/logger"
 	"net/http"
+
+	"metrics/internal/logger"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -17,9 +17,8 @@ import (
 func VerifySignature(hashKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		log := logger.Log.With(
-			zap.String("hashKey", hashKey),
 			zap.String("method", c.Request.Method),
-			zap.String("method", c.Request.URL.String()),
+			zap.String("url", c.Request.URL.String()),
 			zap.String("HashSHA256", c.GetHeader("HashSHA256")),
 		)
 
@@ -73,8 +72,6 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	h := hmac.New(sha256.New, []byte(rw.hashKey))
 	h.Write(b)
 	signature := hex.EncodeToString(h.Sum(nil))
-
-	logger.Log.Debug(fmt.Sprintf("Set HashSHA256 == %s", signature))
 
 	rw.Header().Set("HashSHA256", signature)
 	return rw.ResponseWriter.Write(b)

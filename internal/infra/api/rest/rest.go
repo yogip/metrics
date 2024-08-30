@@ -1,16 +1,19 @@
+// REST API server implementation.
 package rest
 
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
+
 	"metrics/internal/core/config"
 	"metrics/internal/core/service"
 	"metrics/internal/infra/api/rest/handlers"
 	"metrics/internal/infra/api/rest/middlewares"
 	"metrics/internal/logger"
-	"net/http"
-	"time"
 
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -38,6 +41,7 @@ func ZapLogger(logger *zap.Logger) gin.HandlerFunc {
 	}
 }
 
+// NewAPI creates a new http.Server with gin routing and middlewares.
 func NewAPI(cfg *config.Config, metricService *service.MetricService, systemService *service.SystemService) *API {
 	serviceHandler := handlers.NewSystemHandler(systemService)
 	handlerV1 := handlers.NewHandlerV1(metricService)
@@ -48,7 +52,7 @@ func NewAPI(cfg *config.Config, metricService *service.MetricService, systemServ
 	router.Use(gin.Recovery())
 	router.Use(middlewares.GzipDecompressMiddleware())
 	router.Use(middlewares.GzipCompressMiddleware())
-	logger.Log.Info(fmt.Sprintf("--!! build router with HashKey: %s", cfg.HashKey)) // todo -
+
 	if cfg.HashKey != "" {
 		router.Use(middlewares.VerifySignature(cfg.HashKey))
 		router.Use(middlewares.SignBody(cfg.HashKey))
@@ -64,18 +68,21 @@ func NewAPI(cfg *config.Config, metricService *service.MetricService, systemServ
 	router.POST("/update/", handlerV2.UpdateHandler)
 	router.POST("/updates/", handlerV2.BatchUpdateHandler)
 
+	pprof.Register(router)
 	srv := &http.Server{Handler: router}
 	return &API{
 		srv: srv,
 	}
 }
 
+// Run API server. It blocks until the server is stopped.
 func (api *API) Run(runAddr string) error {
 	logger.Log.Info("Run API server", zap.String("Addres", runAddr))
 	api.srv.Addr = runAddr
 	return api.srv.ListenAndServe()
 }
 
+// Shutdown API server. It blocks until the server is stopped. Under the hood calls http.Server.Shutdown.
 func (api *API) Shutdown(ctx context.Context) error {
 	return api.srv.Shutdown(ctx)
 }
