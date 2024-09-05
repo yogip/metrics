@@ -13,13 +13,14 @@ import (
 	"metrics/internal/mocks"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
 func TestUpdateHandler(t *testing.T) {
 	type want struct {
-		code     int
 		response string
+		code     int
 	}
 	tests := []struct {
 		name       string
@@ -291,7 +292,7 @@ func TestUpdateHandler(t *testing.T) {
 		FileStoragePath: "/tmp/storage_dump.json",
 		Restore:         false,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	metricService := service.NewMetricService(store)
 
 	ctrl := gomock.NewController(t)

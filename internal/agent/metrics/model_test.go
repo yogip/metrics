@@ -16,9 +16,9 @@ func TestPayload(t *testing.T) {
 	value101 := 101.0
 
 	tests := []struct {
-		name   string
-		metric Metric
 		want   model.MetricsV2
+		metric Metric
+		name   string
 	}{
 		// gauges
 		{
@@ -93,9 +93,9 @@ func TestWasSent(t *testing.T) {
 	value101 := 101.0
 
 	tests := []struct {
-		name   string
-		metric Metric
 		want   model.MetricsV2
+		metric Metric
+		name   string
 	}{
 		// gauges
 		{

@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSendMetric(t *testing.T) {
@@ -101,7 +102,7 @@ func TestSendMetric(t *testing.T) {
 	srv.POST("/updates", func(c *gin.Context) {
 		var actualMetrics []model.MetricsV2
 		err := c.BindJSON(&actualMetrics)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		assert.Equal(t, expectedMetrics, actualMetrics)
 	})
@@ -113,5 +114,5 @@ func TestSendMetric(t *testing.T) {
 	err := client.SendMetric(expectedMetrics)
 
 	// Verify the result
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

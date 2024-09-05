@@ -43,6 +43,6 @@ func TestPollFromRuntime(t *testing.T) {
 	}
 
 	t.Run(metrics.PollCountCounter.Name, func(t *testing.T) {
-		assert.Greater(t, metrics.PollCountCounter.Value, int64(0))
+		assert.Positive(t, metrics.PollCountCounter.Value)
 	})
 }

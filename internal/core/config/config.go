@@ -13,16 +13,16 @@ type ServerConfig struct {
 }
 
 type StorageConfig struct {
-	StoreIntreval   int64  `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	Restore         bool   `env:"RESTORE"`
 	DatabaseDSN     string `env:"DATABASE_DSN"`
+	StoreIntreval   int64  `env:"STORE_INTERVAL"`
+	Restore         bool   `env:"RESTORE"`
 }
 
 type Config struct {
 	Server  ServerConfig
-	Storage StorageConfig
 	HashKey string `env:"KEY"`
+	Storage StorageConfig
 }
 
 func NewConfig() (*Config, error) {

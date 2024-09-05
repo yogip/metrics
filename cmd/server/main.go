@@ -84,7 +84,7 @@ func run(ctx context.Context, cfg *config.Config) error {
 	defer cancel()
 
 	if err := api.Shutdown(ctx); err != nil {
-		log.Fatal("Server forced to shutdown:", err)
+		return err
 	}
 
 	logger.Log.Info("Server exiting")

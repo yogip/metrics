@@ -228,7 +228,7 @@ func (s *Store) doListGauge(ctx context.Context) ([]*model.Gauge, error) {
 
 	for rows.Next() {
 		var g model.Gauge
-		err := rows.Scan(&g.Name, &g.Value)
+		err = rows.Scan(&g.Name, &g.Value)
 		if err != nil {
 			return nil, fmt.Errorf("error reading gauge row: %w", err)
 		}
@@ -314,7 +314,7 @@ func (s *Store) doListCounter(ctx context.Context) ([]*model.Counter, error) {
 
 	for rows.Next() {
 		var c model.Counter
-		err := rows.Scan(&c.Name, &c.Value)
+		err = rows.Scan(&c.Name, &c.Value)
 		if err != nil {
 			return nil, fmt.Errorf("error reading counter row: %w", err)
 		}
