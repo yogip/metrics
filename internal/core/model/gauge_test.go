@@ -13,6 +13,6 @@ func TestGaugeSetSuccess(t *testing.T) {
 
 	for _, tc := range testCases {
 		g.Set(tc)
-		assert.Equal(t, tc, g.Value)
+		assert.InEpsilon(t, tc, g.Value, 0)
 	}
 }

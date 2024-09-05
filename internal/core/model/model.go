@@ -21,11 +21,10 @@ type MetricUpdateRequest struct {
 	Value string     `uri:"value" binding:"required"`
 }
 
-// ID задае имя метрики.
-// Delta и Value задают значение метрики в случае передачи counter и gauge соответственно.
+// MetricsV2 описывает схему ответа и запроса для метрик.
 type MetricsV2 struct {
-	ID    string     `json:"id"`
-	MType MetricType `json:"type"`
 	Delta *int64     `json:"delta,omitempty"`
 	Value *float64   `json:"value,omitempty"`
+	ID    string     `json:"id"`
+	MType MetricType `json:"type"`
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"metrics/internal/core/config"
 	"metrics/internal/core/model"
@@ -12,8 +13,8 @@ import (
 
 func TestMemStorageSetAndGetCounter(t *testing.T) {
 	tests := []struct {
-		name       string
 		value      *model.Counter
+		name       string
 		valueExist bool
 	}{
 		{
@@ -33,12 +34,12 @@ func TestMemStorageSetAndGetCounter(t *testing.T) {
 		FileStoragePath: "/tmp/storage_dump.json",
 		Restore:         false,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	for _, test := range tests {
 		if test.valueExist {
 			err := repo.SetCounter(context.Background(), test.value)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		}
 	}
 	for _, test := range tests {
@@ -47,7 +48,7 @@ func TestMemStorageSetAndGetCounter(t *testing.T) {
 			req := &model.MetricsV2{ID: test.name, MType: model.CounterType}
 
 			counter, err := repo.GetCounter(context.Background(), req)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, test.valueExist, counter != nil)
 
 			if !test.valueExist {

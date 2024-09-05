@@ -11,6 +11,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -29,7 +30,7 @@ func TestPing(t *testing.T) {
 	ctx := context.Background()
 
 	err = store.Ping(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestBatchUpsertMetrics(t *testing.T) {
@@ -138,7 +139,7 @@ func TestBatchUpsertMetrics(t *testing.T) {
 	ctx := context.Background()
 
 	actual, err := store.BatchUpsertMetrics(ctx, batch)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assert.Equal(t, expected, actual)
 }
@@ -221,7 +222,7 @@ func TestRollbackBatchUpsertMetrics(t *testing.T) {
 			ctx := context.Background()
 
 			actual, err := store.BatchUpsertMetrics(ctx, batch)
-			assert.Error(t, err)
+			require.Error(t, err)
 			assert.Nil(t, actual)
 		})
 	}
@@ -238,9 +239,9 @@ func TestGetGauge(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		testName string
 		metric   *model.MetricsV2
 		want     *model.Gauge
+		testName string
 	}{
 		{
 			testName: "get gauge success",
@@ -282,7 +283,7 @@ func TestGetGauge(t *testing.T) {
 			}
 
 			actual, err := store.GetGauge(ctx, tt.metric)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.want, actual)
 
 			assert.NoError(t, mock.ExpectationsWereMet())
@@ -301,9 +302,9 @@ func TestGetCounter(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		testName string
 		metric   *model.MetricsV2
 		want     *model.Counter
+		testName string
 	}{
 		{
 			testName: "get counter success",
@@ -345,10 +346,10 @@ func TestGetCounter(t *testing.T) {
 			}
 
 			actual, err := store.GetCounter(ctx, tt.metric)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.want, actual)
 
-			assert.NoError(t, mock.ExpectationsWereMet())
+			require.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
 }
@@ -364,8 +365,8 @@ func TestSetGauge(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		testName string
 		metric   *model.Gauge
+		testName string
 	}{
 		{
 			testName: "set gauge success",
@@ -385,7 +386,7 @@ func TestSetGauge(t *testing.T) {
 				WillReturnResult(sqlmock.NewResult(1, 1))
 
 			err := store.SetGauge(ctx, tt.metric)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -402,8 +403,8 @@ func TestSetCounter(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		testName string
 		metric   *model.Counter
+		testName string
 	}{
 		{
 			testName: "set counter success",
@@ -423,7 +424,7 @@ func TestSetCounter(t *testing.T) {
 				WillReturnResult(sqlmock.NewResult(1, 1))
 
 			err := store.SetCounter(ctx, tt.metric)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
@@ -457,8 +458,8 @@ func TestListGauge(t *testing.T) {
 	mock.ExpectQuery(`SELECT id, value FROM gauge`).WillReturnRows(rows)
 
 	actual, err := store.ListGauge(ctx)
-	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
 	assert.Equal(t, metrics, actual)
 }
 
@@ -490,7 +491,7 @@ func TestListCounter(t *testing.T) {
 	mock.ExpectQuery(`SELECT id, value FROM counter`).WillReturnRows(rows)
 
 	actual, err := store.ListCounter(ctx)
-	assert.NoError(t, err)
-	assert.NoError(t, mock.ExpectationsWereMet())
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
 	assert.Equal(t, metrics, actual)
 }

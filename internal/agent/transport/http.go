@@ -18,10 +18,10 @@ import (
 )
 
 type HTTPClient struct {
+	client         *http.Client
 	serverHost     string
 	metricEndpoint string
 	signHashKey    string
-	client         *http.Client
 }
 
 func NewClient(serverHost string, signHashKey string) *HTTPClient {

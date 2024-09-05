@@ -17,8 +17,15 @@ agent:
 fmt:
 	goimports -local "metrics" -w .
 
+lint:
+	go run ./cmd/staticlint ./cmd/... ./internal/...
+
+lint-fix:
+	go run ./cmd/staticlint -fix ./cmd/... ./internal/...
+
 doc:
 	godoc -http=:8000 -goroot=$(shell pwd)
 
 swag:
 	swag init -g ./cmd/server/main.go --output ./swagger
+
