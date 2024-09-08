@@ -37,6 +37,7 @@ func TestVerifySignature(t *testing.T) {
 
 			router.ServeHTTP(w, req)
 			assert.Equal(t, tt.code, w.Result().StatusCode)
+			defer w.Result().Body.Close()
 		})
 	}
 }
