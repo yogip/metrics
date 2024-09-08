@@ -22,6 +22,12 @@ import (
 	"metrics/migrations"
 )
 
+var (
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
+)
+
 func main() {
 	ctx := context.Background()
 
@@ -34,6 +40,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	logger.Log.Info(fmt.Sprintf("Build version: %s", buildVersion))
+	logger.Log.Info(fmt.Sprintf("Build date: %s", buildDate))
+	logger.Log.Info(fmt.Sprintf("Build commit: %s", buildCommit))
 
 	if cfg.Storage.DatabaseDSN != "" {
 		err := migrations.RunMigration(ctx, cfg)
