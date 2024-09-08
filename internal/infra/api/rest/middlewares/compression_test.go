@@ -30,9 +30,11 @@ func TestCompression(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Result().StatusCode)
-	assert.Equal(t, "Test compression", w.Body.String())
-	w.Result().Body.Close()
 
+	respBody, err := io.ReadAll(w.Body)
+	require.NoError(t, err)
+
+	assert.Equal(t, "Test compression", string(respBody))
 }
 
 func compress(data *[]byte) (*bytes.Buffer, error) {
