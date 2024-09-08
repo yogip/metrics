@@ -1,10 +1,11 @@
 package store
 
 import (
+	"testing"
+
 	"metrics/internal/core/config"
 	"metrics/internal/infra/store/db"
 	"metrics/internal/infra/store/memory"
-	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/require"

@@ -63,8 +63,8 @@ func TestMemStorageSetAndGetCounter(t *testing.T) {
 }
 
 func TestMemStorageSetAndGetGauge(t *testing.T) {
-	var value01 float64 = 1.01
-	var value02 float64 = 2.01
+	value01 := 1.01
+	value02 := 2.01
 	var delta01 int64 = 1
 	var delta02 int64 = 10
 	var delta03 int64 = 101
@@ -96,9 +96,9 @@ func TestMemStorageSetAndGetGauge(t *testing.T) {
 		},
 	}
 
-	var expDelta01 int64 = delta01
-	var expDelta02 int64 = delta01 + delta02
-	var expDelta03 int64 = delta01 + delta02 + delta03
+	expDelta01 := delta01
+	expDelta02 := delta01 + delta02
+	expDelta03 := delta01 + delta02 + delta03
 	expected := []*model.MetricsV2{
 		{
 			ID:    "gauge_01",
@@ -159,7 +159,7 @@ func TestListGauge(t *testing.T) {
 		},
 	}
 	for _, test := range expected {
-		err := store.SetGauge(context.Background(), test)
+		err = store.SetGauge(context.Background(), test)
 		require.NoError(t, err)
 	}
 
@@ -188,7 +188,7 @@ func TestListCounter(t *testing.T) {
 		},
 	}
 	for _, test := range expected {
-		err := store.SetCounter(context.Background(), test)
+		err = store.SetCounter(context.Background(), test)
 		require.NoError(t, err)
 	}
 
