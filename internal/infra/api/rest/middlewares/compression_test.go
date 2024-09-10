@@ -29,12 +29,10 @@ func TestCompression(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Result().StatusCode)
-
-	respBody, err := io.ReadAll(w.Body)
-	require.NoError(t, err)
-
-	assert.Equal(t, "Test compression", string(respBody))
+	result := w.Result()
+	assert.Equal(t, http.StatusOK, result.StatusCode)    //nolint
+	assert.Equal(t, "Test compression", w.Body.String()) //nolint
+	result.Body.Close()
 }
 
 func compress(data *[]byte) (*bytes.Buffer, error) {
