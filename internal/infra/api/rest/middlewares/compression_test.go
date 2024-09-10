@@ -30,8 +30,8 @@ func TestCompression(t *testing.T) {
 
 	router.ServeHTTP(w, req)
 	result := w.Result()
-	assert.Equal(t, http.StatusOK, result.StatusCode)    //nolint
-	assert.Equal(t, "Test compression", w.Body.String()) //nolint
+	assert.Equal(t, http.StatusOK, result.StatusCode)
+	assert.Equal(t, "Test compression", w.Body.String())
 	result.Body.Close()
 }
 
