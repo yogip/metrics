@@ -15,8 +15,8 @@ import (
 
 func TestSystemHandler_Ping(t *testing.T) {
 	type want struct {
-		code     int
 		response string
+		code     int
 	}
 
 	ctrl := gomock.NewController(t)

@@ -18,14 +18,6 @@ func (c *Counter) Type() MetricType {
 	return CounterType
 }
 
-func (c *Counter) GetName() string {
-	return c.Name
-}
-
-func (c *Counter) String() string {
-	return fmt.Sprintf("<Countre %s: %d>", c.Name, c.Value)
-}
-
 func (c *Counter) StringValue() string {
 	return strconv.FormatInt(c.Value, 10)
 }

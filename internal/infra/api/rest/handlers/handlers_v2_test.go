@@ -16,14 +16,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateHandler(t *testing.T) {
 	var ten int64 = 10
 
 	type want struct {
-		code     int
 		response string
+		code     int
 	}
 	tests := []struct {
 		metric model.MetricsV2
@@ -39,7 +40,7 @@ func TestUpdateHandler(t *testing.T) {
 			method: http.MethodPost,
 			want: want{
 				code:     200,
-				response: `{"delta":10, "id":"counter", "type":"counter"}`,
+				response: `{"delta":10,"id":"counter","type":"counter"}`,
 			},
 		},
 	}
@@ -52,8 +53,7 @@ func TestUpdateHandler(t *testing.T) {
 				FileStoragePath: "/tmp/storage_dump.json",
 				Restore:         false,
 			})
-			assert.NoError(t, err)
-
+			require.NoError(t, err)
 			service := service.NewMetricService(store)
 			handler := NewHandlerV2(service)
 
@@ -63,7 +63,7 @@ func TestUpdateHandler(t *testing.T) {
 
 			// Convert tt.metric to JSON format
 			body, err := json.Marshal(tt.metric)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			c.Request = httptest.NewRequest(tt.method, "/update", strings.NewReader(string(body)))
 
@@ -81,8 +81,8 @@ func TestUpdateRequestsWithTheSameStore(t *testing.T) {
 	var ten int64 = 10
 
 	type want struct {
-		code     int
 		response string
+		code     int
 	}
 	tests := []struct {
 		metric model.MetricsV2
@@ -121,7 +121,7 @@ func TestUpdateRequestsWithTheSameStore(t *testing.T) {
 		FileStoragePath: "/tmp/storage_dump.json",
 		Restore:         false,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	for _, tt := range tests {
 		// Создаем новый обработчик с поддельным сервисом
 		service := service.NewMetricService(store)
@@ -133,7 +133,7 @@ func TestUpdateRequestsWithTheSameStore(t *testing.T) {
 
 		// Convert tt.metric to JSON format
 		body, err := json.Marshal(tt.metric)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		c.Request = httptest.NewRequest(tt.method, "/update", strings.NewReader(string(body)))
 
@@ -150,8 +150,8 @@ func TestGetHandler(t *testing.T) {
 	var ten int64 = 10
 
 	type want struct {
-		code     int
 		response string
+		code     int
 	}
 	tests := []struct {
 		metric model.MetricsV2
@@ -180,7 +180,7 @@ func TestGetHandler(t *testing.T) {
 				FileStoragePath: "/tmp/storage_dump.json",
 				Restore:         false,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			store.SetCounter(context.Background(), &model.Counter{Name: tt.metric.ID, Value: *tt.metric.Delta})
 			service := service.NewMetricService(store)
 			handler := NewHandlerV2(service)
@@ -190,7 +190,7 @@ func TestGetHandler(t *testing.T) {
 			c, _ := gin.CreateTestContext(w)
 
 			body, err := json.Marshal(model.MetricsV2{ID: tt.metric.ID, MType: tt.metric.MType})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			c.Request = httptest.NewRequest(tt.method, "/value", strings.NewReader(string(body)))
 
@@ -232,5 +232,5 @@ func ExampleHandlerV2_UpdateHandler() {
 
 	// Output:
 	// 200
-	// {"delta":10, "id":"counter", "type":"counter"}
+	// {"delta":10,"id":"counter","type":"counter"}
 }

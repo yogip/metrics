@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"os"
-	"os/signal"
 	"runtime"
 	"sync"
 	"syscall"
@@ -23,22 +21,13 @@ import (
 	"go.uber.org/zap"
 )
 
-func Run(config *config.AgentConfig) {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-
+func Run(ctx context.Context, config *config.AgentConfig) {
 	lock := &sync.Mutex{}
 
 	go metricRuntimePoller(ctx, config, lock)
 	go metricPollerPsutils(ctx, config, lock)
 
 	go metricReporter(ctx, config, lock)
-
-	<-quit
-	logger.Log.Info("Received Ctrl+C, stopping...")
-	cancel()
 }
 
 func metricReporter(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {

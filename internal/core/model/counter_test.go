@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCounterIncrement(t *testing.T) {
@@ -22,7 +23,7 @@ func TestCounterIncrement(t *testing.T) {
 
 	for _, tc := range testCases {
 		err := c.Increment(tc.Increment)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, tc.Expected, c.Value)
 	}
 }

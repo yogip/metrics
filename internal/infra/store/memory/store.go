@@ -125,7 +125,8 @@ func (s *Store) BatchUpsertMetrics(ctx context.Context, metrics []*model.Metrics
 			if err = s.SetGauge(ctx, gauge); err != nil {
 				return nil, fmt.Errorf("failed to save gauge to store: %w", err)
 			}
-			results = append(results, &model.MetricsV2{ID: m.ID, MType: m.MType, Value: &gauge.Value})
+			v := gauge.Value
+			results = append(results, &model.MetricsV2{ID: m.ID, MType: m.MType, Value: &v})
 		case model.CounterType:
 			if m.Delta == nil {
 				return nil, errors.New("incorrect value")
@@ -141,7 +142,8 @@ func (s *Store) BatchUpsertMetrics(ctx context.Context, metrics []*model.Metrics
 			if err = s.SetCounter(ctx, counter); err != nil {
 				return nil, fmt.Errorf("failed to save gauge to store: %w", err)
 			}
-			results = append(results, &model.MetricsV2{ID: m.ID, MType: m.MType, Delta: &counter.Value})
+			v := counter.Value
+			results = append(results, &model.MetricsV2{ID: m.ID, MType: m.MType, Delta: &v})
 		default:
 			return nil, fmt.Errorf("unknown metric type: %s", m.MType.String())
 		}

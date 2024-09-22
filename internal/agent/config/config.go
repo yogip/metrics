@@ -10,19 +10,19 @@ import (
 
 type AgentConfig struct {
 	ServerAddresPort string `env:"ADDRESS" envDefault:"localhost:8080"`
-	ReportInterval   int64  `env:"REPORT_INTERVAL" envDefault:"10"`
-	PollInterval     int64  `env:"POLL_INTERVAL" envDefault:"2"`
 	LogLevel         string `env:"LOG_LEVEL" envDefault:"info"`
 	HashKey          string `env:"KEY"`
+	ReportInterval   int64  `env:"REPORT_INTERVAL" envDefault:"10"`
+	PollInterval     int64  `env:"POLL_INTERVAL" envDefault:"2"`
 	RateLimit        int    `env:"RATE_LIMIT" envDefault:"3"`
 }
 
 func NewAgentConfig() (*AgentConfig, error) {
 	var flagRunAddr string
-	var flagReportInterval int64
-	var flagPollInterval int64
 	var flagLogLevel string
 	var flagHashKey string
+	var flagReportInterval int64
+	var flagPollInterval int64
 	var flagRateLimit int
 
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "server addres and port to send metrics")

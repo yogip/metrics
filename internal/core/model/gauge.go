@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -16,14 +15,6 @@ func NewGauge(name string) *Gauge {
 
 func (g *Gauge) Type() MetricType {
 	return GaugeType
-}
-
-func (g *Gauge) String() string {
-	return fmt.Sprintf("<Gauge %s: %f>", g.Name, g.Value)
-}
-
-func (g *Gauge) GetName() string {
-	return g.Name
 }
 
 func (g *Gauge) StringValue() string {

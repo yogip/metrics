@@ -18,10 +18,10 @@ import (
 )
 
 type HTTPClient struct {
+	client         *http.Client
 	serverHost     string
 	metricEndpoint string
 	signHashKey    string
-	client         *http.Client
 }
 
 func NewClient(serverHost string, signHashKey string) *HTTPClient {
@@ -66,7 +66,7 @@ func (c *HTTPClient) SendMetric(data []model.MetricsV2) error {
 		return fmt.Errorf("error compressiong request body: %w", err)
 	}
 
-	url := fmt.Sprintf(c.serverHost + c.metricEndpoint)
+	url := c.serverHost + c.metricEndpoint
 	req, err := http.NewRequest("POST", url, buf)
 	if err != nil {
 		return fmt.Errorf("request creation error: %w", err)
