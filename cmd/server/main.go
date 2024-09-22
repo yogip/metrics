@@ -67,7 +67,12 @@ func run(ctx context.Context, cfg *config.Config) error {
 	metricService := service.NewMetricService(store)
 	systemService := service.NewSystemService(store)
 	logger.Log.Info("Service initialized")
-	api := rest.NewAPI(cfg, metricService, systemService)
+
+	privateKey, err := service.NewPrivateKey(cfg.CryptoKey)
+	if err != nil {
+		return fmt.Errorf("failed to initialize private key: %w", err)
+	}
+	api := rest.NewAPI(cfg, metricService, systemService, privateKey)
 
 	// https://github.com/gin-gonic/gin/blob/master/docs/doc.md#manually
 	// Initializing the server in a goroutine so that

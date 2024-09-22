@@ -108,12 +108,16 @@ func TestRun(t *testing.T) {
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(4)*time.Second)
 	defer cancel()
 
-	Run(ctx, &config.AgentConfig{
-		ServerAddresPort: testSrv.URL,
-		ReportInterval:   2,
-		PollInterval:     1,
-		RateLimit:        1,
-	})
+	Run(
+		ctx,
+		&config.AgentConfig{
+			ServerAddresPort: testSrv.URL,
+			ReportInterval:   2,
+			PollInterval:     1,
+			RateLimit:        1,
+		},
+		nil,
+	)
 
 	<-ctx.Done()
 

@@ -1,6 +1,9 @@
 package config
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"flag"
 	"fmt"
 	"os"
@@ -20,9 +23,10 @@ type StorageConfig struct {
 }
 
 type Config struct {
-	Server  ServerConfig
-	HashKey string `env:"KEY"`
-	Storage StorageConfig
+	Server    ServerConfig
+	HashKey   string `env:"KEY"`
+	CryptoKey string `env:"CRYPTO_KEY"`
+	Storage   StorageConfig
 }
 
 func NewConfig() (*Config, error) {
@@ -35,6 +39,7 @@ func NewConfig() (*Config, error) {
 	flag.BoolVar(&cfg.Storage.Restore, "r", true, "Restore DB dump from file")
 	flag.StringVar(&cfg.Storage.DatabaseDSN, "d", "", "Database connection string")
 	flag.StringVar(&cfg.HashKey, "k", "", "Hash key to check request signature")
+	flag.StringVar(&cfg.CryptoKey, "crypto-key", "", "Path to private key")
 
 	flag.Parse()
 
@@ -67,6 +72,27 @@ func NewConfig() (*Config, error) {
 	if value, exists := os.LookupEnv("KEY"); exists && value != "" {
 		cfg.HashKey = value
 	}
+	if value, exists := os.LookupEnv("CRYPTO_KEY"); exists && value != "" {
+		cfg.CryptoKey = value
+	}
 
 	return &cfg, nil
+}
+
+func (cfg *Config) ReadCryptoKey() (*rsa.PrivateKey, error) {
+	if cfg.CryptoKey == "" {
+		return nil, nil
+	}
+	data, err := os.ReadFile(cfg.CryptoKey)
+	if err != nil {
+		return nil, fmt.Errorf("reading CRYPTO_KEY error: %w", err)
+	}
+
+	block, _ := pem.Decode(data)
+	privateKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("parsing CRYPTO_KEY error: %w", err)
+	}
+
+	return privateKey.(*rsa.PrivateKey), err
 }
