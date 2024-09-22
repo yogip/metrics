@@ -302,7 +302,7 @@ func TestUpdateHandler(t *testing.T) {
 	systemService := service.NewSystemService(dbMockStore)
 
 	cfg := config.Config{HashKey: ""}
-	api := NewAPI(&cfg, metricService, systemService)
+	api := NewAPI(&cfg, metricService, systemService, nil)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

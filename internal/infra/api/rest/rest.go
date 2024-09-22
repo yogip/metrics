@@ -3,6 +3,7 @@ package rest
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"time"
@@ -19,7 +20,8 @@ import (
 )
 
 type API struct {
-	srv *http.Server
+	privateKey *rsa.PrivateKey
+	srv        *http.Server
 }
 
 func ZapLogger(logger *zap.Logger) gin.HandlerFunc {
@@ -42,7 +44,12 @@ func ZapLogger(logger *zap.Logger) gin.HandlerFunc {
 }
 
 // NewAPI creates a new http.Server with gin routing and middlewares.
-func NewAPI(cfg *config.Config, metricService *service.MetricService, systemService *service.SystemService) *API {
+func NewAPI(
+	cfg *config.Config,
+	metricService *service.MetricService,
+	systemService *service.SystemService,
+	privateKey *rsa.PrivateKey,
+) *API {
 	serviceHandler := handlers.NewSystemHandler(systemService)
 	handlerV1 := handlers.NewHandlerV1(metricService)
 	handlerV2 := handlers.NewHandlerV2(metricService)
@@ -50,6 +57,9 @@ func NewAPI(cfg *config.Config, metricService *service.MetricService, systemServ
 	router := gin.Default()
 	router.Use(ZapLogger(logger.Log))
 	router.Use(gin.Recovery())
+	if privateKey != nil {
+		router.Use(middlewares.DecryptReqBody(privateKey))
+	}
 	router.Use(middlewares.GzipDecompressMiddleware())
 	router.Use(middlewares.GzipCompressMiddleware())
 

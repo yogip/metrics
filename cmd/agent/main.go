@@ -10,6 +10,7 @@ import (
 
 	"metrics/internal/agent"
 	"metrics/internal/agent/config"
+	"metrics/internal/core/service"
 	"metrics/internal/logger"
 
 	"go.uber.org/zap"
@@ -30,17 +31,26 @@ func main() {
 	cfg, err := config.NewAgentConfig()
 	if err != nil {
 		log.Fatal(err)
+		return
 	}
 
 	if err := logger.Initialize(cfg.LogLevel); err != nil {
 		log.Fatal(err)
+		return
 	}
 
 	logger.Log.Info("Start agent", zap.String("server", cfg.ServerAddresPort))
 	logger.Log.Info(fmt.Sprintf("Build version: %s", buildVersion))
 	logger.Log.Info(fmt.Sprintf("Build date: %s", buildDate))
 	logger.Log.Info(fmt.Sprintf("Build commit: %s", buildCommit))
-	agent.Run(ctx, cfg)
+
+	pubKey, err := service.NewPublicKey(cfg.CryptoKey)
+	if err != nil {
+		log.Fatalf("failed to initialize public key: %s", err)
+		return
+	}
+
+	agent.Run(ctx, cfg, pubKey)
 
 	<-quit
 	logger.Log.Info("Received Ctrl+C, stopping...")
