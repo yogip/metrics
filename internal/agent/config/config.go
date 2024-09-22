@@ -21,7 +21,7 @@ type AgentConfig struct {
 	RateLimit        int    `env:"RATE_LIMIT" envDefault:"3"`
 }
 
-type JsonConfig struct {
+type JSONConfig struct {
 	ServerAddresPort *string `json:"address,omitempty"`
 	LogLevel         *string `json:"log_level,omitempty"`
 	HashKey          *string `json:"key,omitempty"`
@@ -31,7 +31,7 @@ type JsonConfig struct {
 	RateLimit        *int    `json:"rate_limit"`
 }
 
-func loadJsonConfig(path string) (cfg *JsonConfig, err error) {
+func loadJSONConfig(path string) (cfg *JSONConfig, err error) {
 	if path == "" {
 		return
 	}
@@ -79,7 +79,7 @@ func NewAgentConfig() (*AgentConfig, error) {
 	if value, exists := os.LookupEnv("CONFIG"); exists {
 		jsonCfgPath = value
 	}
-	jsonCfg, err := loadJsonConfig(jsonCfgPath)
+	jsonCfg, err := loadJSONConfig(jsonCfgPath)
 	if err != nil {
 		return nil, fmt.Errorf("json config loading error: %w", err)
 	}
