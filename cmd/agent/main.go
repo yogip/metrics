@@ -46,7 +46,7 @@ func main() {
 
 	pubKey, err := service.NewPublicKey(cfg.CryptoKey)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("failed to initialize public key: %s", err))
+		log.Fatalf("failed to initialize public key: %s", err)
 		return
 	}
 
