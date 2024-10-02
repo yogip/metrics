@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"syscall"
 	"time"
 
@@ -52,7 +53,7 @@ func newStore(db *sql.DB) *Store {
 	return store
 }
 
-func NewStore(cfg *config.StorageConfig) (*Store, error) {
+func NewStore(ctx context.Context, wg *sync.WaitGroup, cfg *config.StorageConfig) (*Store, error) {
 	db, err := sql.Open("pgx", cfg.DatabaseDSN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Database: %w", err)

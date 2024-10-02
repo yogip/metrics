@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -52,13 +53,20 @@ func main() {
 		}
 	}
 
-	if err := run(ctx, cfg); err != nil {
+	var wg sync.WaitGroup
+	if err := run(ctx, &wg, cfg); err != nil {
 		logger.Log.Fatal("Running server Error", zap.String("error", err.Error()))
 	}
+	wg.Wait() // wait for all goroutines to finish
+	logger.Log.Info("Server exiting")
 }
 
-func run(ctx context.Context, cfg *config.Config) error {
-	store, err := store.NewStore(&cfg.Storage)
+func run(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config) error {
+	store, err := store.NewStore(
+		ctx,
+		wg,
+		&cfg.Storage,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize a store: %w", err)
 	}
@@ -102,6 +110,5 @@ func run(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 
-	logger.Log.Info("Server exiting")
 	return nil
 }

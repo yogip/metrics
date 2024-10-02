@@ -25,7 +25,8 @@ func TestPollFromRuntime(t *testing.T) {
 	ctxT, cancel := context.WithTimeout(ctx, time.Duration(cfg.PollInterval)*time.Second+time.Second)
 	defer cancel()
 
-	metricRuntimePoller(ctxT, &cfg, lock)
+	var wg sync.WaitGroup
+	metricRuntimePoller(ctxT, &wg, &cfg, lock)
 
 	gauges := []metrics.Gauge{
 		metrics.RandomValue,
@@ -69,7 +70,8 @@ func TestPollFromPsutils(t *testing.T) {
 	ctxT, cancel := context.WithTimeout(ctx, time.Duration(cfg.PollInterval)*time.Second+time.Second)
 	defer cancel()
 
-	metricPollerPsutils(ctxT, &cfg, lock)
+	var wg sync.WaitGroup
+	metricPollerPsutils(ctxT, &wg, &cfg, lock)
 
 	gauges := []metrics.Gauge{
 		metrics.TotalMemory,
@@ -108,8 +110,11 @@ func TestRun(t *testing.T) {
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(4)*time.Second)
 	defer cancel()
 
+	var wg sync.WaitGroup
+
 	Run(
 		ctx,
+		&wg,
 		&config.AgentConfig{
 			ServerAddresPort: testSrv.URL,
 			ReportInterval:   2,

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"metrics/internal/agent"
@@ -50,9 +51,11 @@ func main() {
 		return
 	}
 
-	agent.Run(ctx, cfg, pubKey)
+	var wg sync.WaitGroup
+	agent.Run(ctx, &wg, cfg, pubKey)
 
 	<-quit
 	logger.Log.Info("Received Ctrl+C, stopping...")
 	cancel()
+	wg.Wait() // wait for all goroutines to finish
 }

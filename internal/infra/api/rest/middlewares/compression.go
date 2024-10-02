@@ -60,19 +60,16 @@ func GzipCompressMiddleware() gin.HandlerFunc {
 
 func GzipDecompressMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Println("--- GzipDecompress  middleware: ", c.Request.Method)
 		if !strings.Contains(
 			c.GetHeader("Content-Encoding"),
 			"gzip",
 		) {
-			fmt.Println("--- GzipDecompress  exit: 1", c.Request.Method)
 			c.Next()
 			return
 		}
 
 		gz, err := gzip.NewReader(c.Request.Body)
 		if err != nil {
-			fmt.Println("--- GzipDecompress  exit: 2", err)
 			c.String(
 				http.StatusInternalServerError,
 				fmt.Errorf("error creating gzip reader: %w", err).Error(),
@@ -82,7 +79,6 @@ func GzipDecompressMiddleware() gin.HandlerFunc {
 		defer gz.Close()
 
 		c.Request.Body = gz
-		fmt.Println("--- GzipDecompress  exit: 3 FINISH")
 		c.Next()
 	}
 }

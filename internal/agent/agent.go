@@ -22,16 +22,19 @@ import (
 	"go.uber.org/zap"
 )
 
-func Run(ctx context.Context, config *config.AgentConfig, pubKey *rsa.PublicKey) {
+func Run(ctx context.Context, wg *sync.WaitGroup, config *config.AgentConfig, pubKey *rsa.PublicKey) {
 	lock := &sync.Mutex{}
 
-	go metricRuntimePoller(ctx, config, lock)
-	go metricPollerPsutils(ctx, config, lock)
+	go metricRuntimePoller(ctx, wg, config, lock)
+	go metricPollerPsutils(ctx, wg, config, lock)
 
-	go metricReporter(ctx, config, lock, pubKey)
+	go metricReporter(ctx, wg, config, lock, pubKey)
 }
 
-func metricReporter(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex, pubKey *rsa.PublicKey) {
+func metricReporter(ctx context.Context, wg *sync.WaitGroup, cfg *config.AgentConfig, lock *sync.Mutex, pubKey *rsa.PublicKey) {
+	wg.Add(1)
+	defer wg.Done()
+
 	reportTicker := time.NewTicker(time.Duration(cfg.ReportInterval) * time.Second)
 	defer reportTicker.Stop()
 
@@ -106,7 +109,10 @@ func postMetrics(ctx context.Context, client metrics.Transporter, data []model.M
 	}
 }
 
-func metricRuntimePoller(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
+func metricRuntimePoller(ctx context.Context, wg *sync.WaitGroup, cfg *config.AgentConfig, lock *sync.Mutex) {
+	wg.Add(1)
+	defer wg.Done()
+
 	pollTicker := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
 	defer pollTicker.Stop()
 
@@ -121,7 +127,10 @@ func metricRuntimePoller(ctx context.Context, cfg *config.AgentConfig, lock *syn
 	}
 }
 
-func metricPollerPsutils(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
+func metricPollerPsutils(ctx context.Context, wg *sync.WaitGroup, cfg *config.AgentConfig, lock *sync.Mutex) {
+	wg.Add(1)
+	defer wg.Done()
+
 	pollTicker := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
 	defer pollTicker.Stop()
 
