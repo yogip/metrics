@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 )
 
 func TestMemStorageSetAndGetCounter(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		value      *model.Counter
 		name       string
@@ -30,11 +32,16 @@ func TestMemStorageSetAndGetCounter(t *testing.T) {
 		},
 	}
 
-	repo, err := NewStore(&config.StorageConfig{
-		StoreIntreval:   1000,
-		FileStoragePath: "/tmp/storage_dump.json",
-		Restore:         false,
-	})
+	var wg sync.WaitGroup
+	repo, err := NewStore(
+		ctx,
+		&wg,
+		&config.StorageConfig{
+			StoreIntreval:   1000,
+			FileStoragePath: "/tmp/storage_dump.json",
+			Restore:         false,
+		},
+	)
 	require.NoError(t, err)
 
 	for _, test := range tests {
@@ -127,11 +134,17 @@ func TestMemStorageSetAndGetGauge(t *testing.T) {
 		},
 	}
 
-	repo, err := NewStore(&config.StorageConfig{
-		StoreIntreval:   1000,
-		FileStoragePath: "/tmp/storage_dump.json",
-		Restore:         false,
-	})
+	ctx := context.Background()
+	var wg sync.WaitGroup
+	repo, err := NewStore(
+		ctx,
+		&wg,
+		&config.StorageConfig{
+			StoreIntreval:   1000,
+			FileStoragePath: "/tmp/storage_dump.json",
+			Restore:         false,
+		},
+	)
 	require.NoError(t, err)
 
 	actual, err := repo.BatchUpsertMetrics(context.Background(), batch)
@@ -140,13 +153,18 @@ func TestMemStorageSetAndGetGauge(t *testing.T) {
 }
 
 func TestListGauge(t *testing.T) {
-	store, err := NewStore(&config.StorageConfig{
-		StoreIntreval:   1000,
-		FileStoragePath: "/tmp/storage_dump.json",
-		Restore:         false,
-	})
-	require.NoError(t, err)
 	ctx := context.Background()
+	var wg sync.WaitGroup
+	store, err := NewStore(
+		ctx,
+		&wg,
+		&config.StorageConfig{
+			StoreIntreval:   1000,
+			FileStoragePath: "/tmp/storage_dump.json",
+			Restore:         false,
+		},
+	)
+	require.NoError(t, err)
 
 	expected := []*model.Gauge{
 		{
@@ -169,13 +187,19 @@ func TestListGauge(t *testing.T) {
 }
 
 func TestListCounter(t *testing.T) {
-	store, err := NewStore(&config.StorageConfig{
-		StoreIntreval:   1000,
-		FileStoragePath: "/tmp/storage_dump.json",
-		Restore:         false,
-	})
-	require.NoError(t, err)
 	ctx := context.Background()
+
+	var wg sync.WaitGroup
+	store, err := NewStore(
+		ctx,
+		&wg,
+		&config.StorageConfig{
+			StoreIntreval:   1000,
+			FileStoragePath: "/tmp/storage_dump.json",
+			Restore:         false,
+		},
+	)
+	require.NoError(t, err)
 
 	expected := []*model.Counter{
 		{
@@ -198,14 +222,19 @@ func TestListCounter(t *testing.T) {
 }
 
 func TestPing(t *testing.T) {
-	store, err := NewStore(&config.StorageConfig{
-		StoreIntreval:   1000,
-		FileStoragePath: "/tmp/storage_dump.json",
-		Restore:         false,
-	})
-	require.NoError(t, err)
 	ctx := context.Background()
 
+	var wg sync.WaitGroup
+	store, err := NewStore(
+		ctx,
+		&wg,
+		&config.StorageConfig{
+			StoreIntreval:   1000,
+			FileStoragePath: "/tmp/storage_dump.json",
+			Restore:         false,
+		},
+	)
+	require.NoError(t, err)
 	err = store.Ping(ctx)
 	require.Error(t, err)
 }

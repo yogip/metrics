@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"metrics/internal/core/config"
@@ -48,11 +49,16 @@ func TestUpdateHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.metric.ID, func(t *testing.T) {
 			// Создаем новый обработчик с поддельным сервисом
-			store, err := memory.NewStore(&config.StorageConfig{
-				StoreIntreval:   1000,
-				FileStoragePath: "/tmp/storage_dump.json",
-				Restore:         false,
-			})
+			var wg sync.WaitGroup
+			store, err := memory.NewStore(
+				context.Background(),
+				&wg,
+				&config.StorageConfig{
+					StoreIntreval:   1000,
+					FileStoragePath: "/tmp/storage_dump.json",
+					Restore:         false,
+				},
+			)
 			require.NoError(t, err)
 			service := service.NewMetricService(store)
 			handler := NewHandlerV2(service)
@@ -116,11 +122,16 @@ func TestUpdateRequestsWithTheSameStore(t *testing.T) {
 	}
 
 	// один стор для всех запросов, результат будет накопительный
-	store, err := memory.NewStore(&config.StorageConfig{
-		StoreIntreval:   1000,
-		FileStoragePath: "/tmp/storage_dump.json",
-		Restore:         false,
-	})
+	var wg sync.WaitGroup
+	store, err := memory.NewStore(
+		context.Background(),
+		&wg,
+		&config.StorageConfig{
+			StoreIntreval:   1000,
+			FileStoragePath: "/tmp/storage_dump.json",
+			Restore:         false,
+		},
+	)
 	require.NoError(t, err)
 	for _, tt := range tests {
 		// Создаем новый обработчик с поддельным сервисом
@@ -175,11 +186,16 @@ func TestGetHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.metric.ID, func(t *testing.T) {
 			// Создаем новый обработчик с поддельным сервисом
-			store, err := memory.NewStore(&config.StorageConfig{
-				StoreIntreval:   1000,
-				FileStoragePath: "/tmp/storage_dump.json",
-				Restore:         false,
-			})
+			var wg sync.WaitGroup
+			store, err := memory.NewStore(
+				context.Background(),
+				&wg,
+				&config.StorageConfig{
+					StoreIntreval:   1000,
+					FileStoragePath: "/tmp/storage_dump.json",
+					Restore:         false,
+				},
+			)
 			require.NoError(t, err)
 			store.SetCounter(context.Background(), &model.Counter{Name: tt.metric.ID, Value: *tt.metric.Delta})
 			service := service.NewMetricService(store)
@@ -213,7 +229,14 @@ func ExampleHandlerV2_UpdateHandler() {
 		Delta: &ten,
 	}
 
-	store, _ := memory.NewStore(&config.StorageConfig{Restore: false})
+	var wg sync.WaitGroup
+	store, _ := memory.NewStore(
+		context.Background(),
+		&wg,
+		&config.StorageConfig{
+			Restore: false,
+		},
+	)
 
 	service := service.NewMetricService(store)
 	handler := NewHandlerV2(service)

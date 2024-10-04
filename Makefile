@@ -13,10 +13,10 @@ test:
 	go tool cover -func profile.cov
 
 server:
-	go run $(LDFLAGS) cmd/server/main.go -l debug -d "host=localhost port=45432 user=username password=password dbname=metrics sslmode=disable" -k SomeKey
+	go run $(LDFLAGS) cmd/server/main.go -l debug -crypto-key private.pem -d "host=localhost port=45432 user=username password=password dbname=metrics sslmode=disable" -k SomeKey
 
 agent:
-	go run $(LDFLAGS) cmd/agent/main.go -v debug -k SomeKey -l 3 
+	go run $(LDFLAGS) cmd/agent/main.go -v debug -k SomeKey -l 3 -crypto-key public.pem
 
 fmt:
 	goimports -local "metrics" -w .
@@ -33,3 +33,7 @@ doc:
 swag:
 	swag init -g ./cmd/server/main.go --output ./swagger
 
+
+keys:
+	openssl genrsa -out private.pem 4096
+	openssl rsa -in private.pem -outform PEM -pubout -out public.pem

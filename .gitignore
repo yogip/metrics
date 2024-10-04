@@ -29,3 +29,5 @@ vendor/
 # file for experiments
 temp.go
 rtdb/
+
+*.pem

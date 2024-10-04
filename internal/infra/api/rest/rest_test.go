@@ -1,9 +1,11 @@
 package rest
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"metrics/internal/core/config"
@@ -287,11 +289,16 @@ func TestUpdateHandler(t *testing.T) {
 		},
 	}
 
-	store, err := memory.NewStore(&config.StorageConfig{
-		StoreIntreval:   1000,
-		FileStoragePath: "/tmp/storage_dump.json",
-		Restore:         false,
-	})
+	var wg sync.WaitGroup
+	store, err := memory.NewStore(
+		context.Background(),
+		&wg,
+		&config.StorageConfig{
+			StoreIntreval:   1000,
+			FileStoragePath: "/tmp/storage_dump.json",
+			Restore:         false,
+		},
+	)
 	require.NoError(t, err)
 	metricService := service.NewMetricService(store)
 
@@ -302,7 +309,7 @@ func TestUpdateHandler(t *testing.T) {
 	systemService := service.NewSystemService(dbMockStore)
 
 	cfg := config.Config{HashKey: ""}
-	api := NewAPI(&cfg, metricService, systemService)
+	api := NewAPI(&cfg, metricService, systemService, nil)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

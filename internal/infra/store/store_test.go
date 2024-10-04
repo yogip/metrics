@@ -1,6 +1,8 @@
 package store
 
 import (
+	"context"
+	"sync"
 	"testing"
 
 	"metrics/internal/core/config"
@@ -15,18 +17,22 @@ func TestNewDBStore(t *testing.T) {
 	cfg := &config.StorageConfig{
 		DatabaseDSN: "...",
 	}
+	ctx := context.Background()
 
-	actual, err := NewStore(cfg)
+	var wg sync.WaitGroup
+	actual, err := NewStore(ctx, &wg, cfg)
 	require.NoError(t, err)
 	require.IsType(t, &db.Store{}, actual)
 }
 
 func TestNewMemoryStore(t *testing.T) {
+	ctx := context.Background()
 	cfg := &config.StorageConfig{
 		Restore: false,
 	}
 
-	actual, err := NewStore(cfg)
+	var wg sync.WaitGroup
+	actual, err := NewStore(ctx, &wg, cfg)
 	require.NoError(t, err)
 	require.IsType(t, &memory.Store{}, actual)
 }

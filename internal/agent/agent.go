@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"math/rand"
 	"runtime"
@@ -21,22 +22,25 @@ import (
 	"go.uber.org/zap"
 )
 
-func Run(ctx context.Context, config *config.AgentConfig) {
+func Run(ctx context.Context, wg *sync.WaitGroup, config *config.AgentConfig, pubKey *rsa.PublicKey) {
 	lock := &sync.Mutex{}
 
-	go metricRuntimePoller(ctx, config, lock)
-	go metricPollerPsutils(ctx, config, lock)
+	go metricRuntimePoller(ctx, wg, config, lock)
+	go metricPollerPsutils(ctx, wg, config, lock)
 
-	go metricReporter(ctx, config, lock)
+	go metricReporter(ctx, wg, config, lock, pubKey)
 }
 
-func metricReporter(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
+func metricReporter(ctx context.Context, wg *sync.WaitGroup, cfg *config.AgentConfig, lock *sync.Mutex, pubKey *rsa.PublicKey) {
+	wg.Add(1)
+	defer wg.Done()
+
 	reportTicker := time.NewTicker(time.Duration(cfg.ReportInterval) * time.Second)
 	defer reportTicker.Stop()
 
 	metricsCh := make(chan []model.MetricsV2, cfg.RateLimit)
 	for i := 0; i < cfg.RateLimit; i++ {
-		go metricReporterWorker(ctx, cfg, metricsCh, i)
+		go metricReporterWorker(ctx, cfg, metricsCh, pubKey, i)
 	}
 
 	for {
@@ -63,10 +67,11 @@ func metricReporterWorker(
 	ctx context.Context,
 	cfg *config.AgentConfig,
 	metricsCh chan []model.MetricsV2,
+	pubKey *rsa.PublicKey,
 	workerID int,
 ) {
 	logger.Log.Info(fmt.Sprintf("Start worker N: %d", workerID))
-	client := transport.NewClient(cfg.ServerAddresPort, cfg.HashKey)
+	client := transport.NewClient(cfg.ServerAddresPort, cfg.HashKey, pubKey)
 
 	for {
 		select {
@@ -104,7 +109,10 @@ func postMetrics(ctx context.Context, client metrics.Transporter, data []model.M
 	}
 }
 
-func metricRuntimePoller(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
+func metricRuntimePoller(ctx context.Context, wg *sync.WaitGroup, cfg *config.AgentConfig, lock *sync.Mutex) {
+	wg.Add(1)
+	defer wg.Done()
+
 	pollTicker := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
 	defer pollTicker.Stop()
 
@@ -119,7 +127,10 @@ func metricRuntimePoller(ctx context.Context, cfg *config.AgentConfig, lock *syn
 	}
 }
 
-func metricPollerPsutils(ctx context.Context, cfg *config.AgentConfig, lock *sync.Mutex) {
+func metricPollerPsutils(ctx context.Context, wg *sync.WaitGroup, cfg *config.AgentConfig, lock *sync.Mutex) {
+	wg.Add(1)
+	defer wg.Done()
+
 	pollTicker := time.NewTicker(time.Duration(cfg.PollInterval) * time.Second)
 	defer pollTicker.Stop()
 

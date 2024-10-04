@@ -25,7 +25,7 @@ type Store struct {
 	counter map[string]*model.Counter
 }
 
-func NewStore(cfg *config.StorageConfig) (*Store, error) {
+func NewStore(ctx context.Context, wg *sync.WaitGroup, cfg *config.StorageConfig) (*Store, error) {
 	store := &Store{
 		mux:     &sync.RWMutex{},
 		quit:    make(chan bool),
@@ -40,7 +40,7 @@ func NewStore(cfg *config.StorageConfig) (*Store, error) {
 		}
 	}
 	if cfg.StoreIntreval > 0 && cfg.FileStoragePath != "" {
-		go store.dumpPeriodicly()
+		go store.dumpPeriodicly(ctx, wg)
 	}
 	logger.Log.Info(
 		"Memory Store initialized",
@@ -236,14 +236,17 @@ func (s *Store) loadDump() error {
 	return nil
 }
 
-func (s *Store) dumpPeriodicly() {
+func (s *Store) dumpPeriodicly(ctx context.Context, wg *sync.WaitGroup) {
+	wg.Add(1)
+	defer wg.Done()
+
 	ticker := time.NewTicker(time.Duration(s.config.StoreIntreval) * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-s.quit:
-			logger.Log.Info("Close dump DB cilcle")
+			logger.Log.Info("Close dump DB cicle")
 			return
 		case <-ticker.C:
 			s.mux.Lock()
