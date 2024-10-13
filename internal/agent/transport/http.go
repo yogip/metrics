@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/hmac"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 
 	"metrics/internal/core/model"
+	"metrics/internal/core/service"
 	"metrics/internal/logger"
 
 	"go.uber.org/zap"
@@ -22,30 +24,39 @@ type HTTPClient struct {
 	serverHost     string
 	metricEndpoint string
 	signHashKey    string
+	pubKey         *rsa.PublicKey
 }
 
-func NewClient(serverHost string, signHashKey string) *HTTPClient {
+func NewClient(serverHost string, signHashKey string, pubKey *rsa.PublicKey) *HTTPClient {
 	return &HTTPClient{
 		serverHost:     serverHost,
 		signHashKey:    signHashKey,
+		pubKey:         pubKey,
 		metricEndpoint: "/updates",
 		client:         &http.Client{},
 	}
 }
 
-func (c *HTTPClient) compress(data *[]byte) (*bytes.Buffer, error) {
+func (c *HTTPClient) compress(data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	gz, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)
 	if err != nil {
 		return nil, fmt.Errorf("error creating gzip writer: %w", err)
 	}
-	if _, err := gz.Write(*data); err != nil {
+	if _, err := gz.Write(data); err != nil {
 		return nil, fmt.Errorf("error writing to gzip writer: %w", err)
 	}
 	if err := gz.Close(); err != nil {
 		return nil, fmt.Errorf("error closing gzip writer: %w", err)
 	}
-	return &buf, nil
+	return buf.Bytes(), nil
+}
+
+func (c *HTTPClient) encrypt(data []byte) ([]byte, error) {
+	if c.pubKey == nil {
+		return data, nil
+	}
+	return service.Encrypt(c.pubKey, data)
 }
 
 func (c *HTTPClient) sign(data *[]byte) string {
@@ -61,13 +72,18 @@ func (c *HTTPClient) SendMetric(data []model.MetricsV2) error {
 		return fmt.Errorf("error marshalling request body: %w", err)
 	}
 
-	buf, err := c.compress(&body)
+	body, err = c.compress(body)
 	if err != nil {
 		return fmt.Errorf("error compressiong request body: %w", err)
 	}
 
+	body, err = c.encrypt(body)
+	if err != nil {
+		return fmt.Errorf("error encrypting request body: %w", err)
+	}
+
 	url := c.serverHost + c.metricEndpoint
-	req, err := http.NewRequest("POST", url, buf)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("request creation error: %w", err)
 	}

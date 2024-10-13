@@ -4,6 +4,7 @@ package store
 
 import (
 	"context"
+	"sync"
 
 	"metrics/internal/core/config"
 	"metrics/internal/core/model"
@@ -27,9 +28,9 @@ type Store interface {
 // NewStore create new Store object.
 // The Store will use database backend If the environment variable DATABASE_DSN or -d command arg is specified,
 // otherwise memory storage.
-func NewStore(cfg *config.StorageConfig) (Store, error) {
+func NewStore(ctx context.Context, wg *sync.WaitGroup, cfg *config.StorageConfig) (Store, error) {
 	if cfg.DatabaseDSN != "" {
-		return db.NewStore(cfg)
+		return db.NewStore(ctx, wg, cfg)
 	}
-	return memory.NewStore(cfg)
+	return memory.NewStore(ctx, wg, cfg)
 }
