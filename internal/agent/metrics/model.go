@@ -4,10 +4,6 @@ import (
 	"metrics/internal/core/model"
 )
 
-type Transporter interface {
-	SendMetric(req []model.MetricsV2) error
-}
-
 type Metric interface {
 	Payload() model.MetricsV2
 	Type() model.MetricType

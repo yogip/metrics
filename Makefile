@@ -15,8 +15,15 @@ test:
 server:
 	go run $(LDFLAGS) cmd/server/main.go -l debug -crypto-key private.pem -d "host=localhost port=45432 user=username password=password dbname=metrics sslmode=disable" -k SomeKey
 
+grpc-server:
+	go run $(LDFLAGS) cmd/server/main.go -b grpc -l debug -d "host=localhost port=45432 user=username password=password dbname=metrics sslmode=disable"
+
+
 agent:
 	go run $(LDFLAGS) cmd/agent/main.go -v debug -k SomeKey -l 3 -crypto-key public.pem
+grpc-agent:
+	go run $(LDFLAGS) cmd/agent/main.go -t grpc -v debug
+
 
 fmt:
 	goimports -local "metrics" -w .
@@ -37,3 +44,9 @@ swag:
 keys:
 	openssl genrsa -out private.pem 4096
 	openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+
+
+proto:
+	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. \ 
+		--go-grpc_opt=paths=source_relative internal/proto/metrics.proto
+

@@ -22,6 +22,11 @@ import (
 	"go.uber.org/zap"
 )
 
+type Transporter interface {
+	SendMetrics(context.Context, []model.MetricsV2) error
+	Close()
+}
+
 func Run(ctx context.Context, wg *sync.WaitGroup, config *config.AgentConfig, pubKey *rsa.PublicKey) {
 	lock := &sync.Mutex{}
 
@@ -38,9 +43,15 @@ func metricReporter(ctx context.Context, wg *sync.WaitGroup, cfg *config.AgentCo
 	reportTicker := time.NewTicker(time.Duration(cfg.ReportInterval) * time.Second)
 	defer reportTicker.Stop()
 
+	client, err := transport.NewClient(cfg.TransportType, cfg.ServerAddresPort, cfg.HashKey, pubKey)
+	if err != nil {
+		logger.Log.Fatal("Failed to create client", zap.Error(err))
+	}
+	defer client.Close()
+
 	metricsCh := make(chan []model.MetricsV2, cfg.RateLimit)
 	for i := 0; i < cfg.RateLimit; i++ {
-		go metricReporterWorker(ctx, cfg, metricsCh, pubKey, i)
+		go metricReporterWorker(ctx, client, metricsCh, i)
 	}
 
 	for {
@@ -65,18 +76,17 @@ func metricReporter(ctx context.Context, wg *sync.WaitGroup, cfg *config.AgentCo
 
 func metricReporterWorker(
 	ctx context.Context,
-	cfg *config.AgentConfig,
+	client Transporter,
 	metricsCh chan []model.MetricsV2,
-	pubKey *rsa.PublicKey,
 	workerID int,
 ) {
 	logger.Log.Info(fmt.Sprintf("Start worker N: %d", workerID))
-	client := transport.NewClient(cfg.ServerAddresPort, cfg.HashKey, pubKey)
 
 	for {
 		select {
 		case <-ctx.Done():
 			logger.Log.Info("Exit from metricReporterWorker")
+			client.Close()
 			return
 		case data := <-metricsCh:
 			postMetrics(ctx, client, data, workerID)
@@ -84,7 +94,7 @@ func metricReporterWorker(
 	}
 }
 
-func postMetrics(ctx context.Context, client metrics.Transporter, data []model.MetricsV2, workerID int) {
+func postMetrics(ctx context.Context, client Transporter, data []model.MetricsV2, workerID int) {
 	logger.Log.Debug(fmt.Sprintf("Reporting metrics. Worker ID: %d", workerID))
 
 	ret := &retrier.Retrier{
@@ -100,7 +110,7 @@ func postMetrics(ctx context.Context, client metrics.Transporter, data []model.M
 	}
 
 	fun := func() error {
-		return client.SendMetric(data)
+		return client.SendMetrics(ctx, data)
 	}
 
 	if err := ret.Do(ctx, fun, syscall.ECONNREFUSED); err != nil {

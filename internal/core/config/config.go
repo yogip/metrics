@@ -7,15 +7,24 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 
 	"github.com/pkg/errors"
 )
 
+type BackendType string
+
+const (
+	HTTPBackType BackendType = "http"
+	GRPCBackType BackendType = "grpc"
+)
+
 type ServerConfig struct {
-	Address  string
-	LogLevel string
+	Address     string
+	LogLevel    string
+	BackendType BackendType
 }
 
 type StorageConfig struct {
@@ -26,10 +35,11 @@ type StorageConfig struct {
 }
 
 type Config struct {
-	Server    ServerConfig
-	HashKey   string
-	CryptoKey string
-	Storage   StorageConfig
+	Server        ServerConfig
+	HashKey       string
+	CryptoKey     string
+	TrustedSubnet *net.IPNet
+	Storage       StorageConfig
 }
 
 type JSONConfig struct {
@@ -39,6 +49,7 @@ type JSONConfig struct {
 	CryptoKey       *string `json:"crypto_key,omitempty"`
 	FileStoragePath *string `json:"file_storage_path,omitempty"`
 	DatabaseDSN     *string `json:"database_dsn,omitempty"`
+	TrustedSubnet   *string `json:"trusted_subnet,omitempty"`
 	StoreIntreval   *int64  `json:"store_interval,omitempty"`
 	Restore         *bool   `json:"restore,omitempty"`
 }
@@ -70,26 +81,30 @@ func NewConfig() (*Config, error) {
 			StoreIntreval:   300,
 			Restore:         true,
 		},
-		HashKey:   "",
-		CryptoKey: "",
+		HashKey:       "",
+		CryptoKey:     "",
+		TrustedSubnet: nil,
 	}
 
 	// Read commant args to serparate variables
 	var jsonCfgPath, jsonCfgPathFull string
-	var serverAddress, serverLogLevel string
+	var serverAddress, serverLogLevel, backendType string
 	var storageStoreIntreval int64
 	var storageFileStoragePath, storageDatabaseDSN string
 	var storageRestore bool
 	var hashKey, cryptoKey string
+	var trustedSubnet string
 
 	flag.StringVar(&serverAddress, "a", "", "address and port to run server")
 	flag.StringVar(&serverLogLevel, "l", "", "Log levle: debug, info, warn, error, panic, fatal")
+	flag.StringVar(&backendType, "b", string(HTTPBackType), "Backend type: http, grpc")
 	flag.Int64Var(&storageStoreIntreval, "i", 0, "Dump DB to file with given interval. 0 - means to write all changes immediately")
 	flag.StringVar(&storageFileStoragePath, "f", "", "Path to dump file")
 	flag.BoolVar(&storageRestore, "r", false, "Restore DB dump from file")
 	flag.StringVar(&storageDatabaseDSN, "d", "", "Database connection string")
 	flag.StringVar(&hashKey, "k", "", "Hash key to check request signature")
 	flag.StringVar(&cryptoKey, "crypto-key", "", "Path to private key")
+	flag.StringVar(&trustedSubnet, "t", "", "Allowed agents subnet")
 	flag.StringVar(&jsonCfgPath, "с", "", "json configuration file")
 	flag.StringVar(&jsonCfgPathFull, "config", "", "json configuration file")
 
@@ -124,6 +139,16 @@ func NewConfig() (*Config, error) {
 		cfg.Server.LogLevel = serverLogLevel
 	} else if jsonCfg != nil && jsonCfg.Address != nil {
 		cfg.Server.LogLevel = *jsonCfg.LogLevel
+	}
+
+	// Backend Type
+	switch BackendType(backendType) {
+	case HTTPBackType:
+		cfg.Server.BackendType = HTTPBackType
+	case GRPCBackType:
+		cfg.Server.BackendType = GRPCBackType
+	default:
+		return nil, errors.New("unknown backend type")
 	}
 
 	// STORE_INTERVAL
@@ -186,6 +211,19 @@ func NewConfig() (*Config, error) {
 		cfg.CryptoKey = cryptoKey
 	} else if jsonCfg != nil && jsonCfg.CryptoKey != nil {
 		cfg.CryptoKey = *jsonCfg.CryptoKey
+	}
+
+	// TRUSTED_SUBNET
+	if value, exists := os.LookupEnv("TRUSTED_SUBNET"); exists && value != "" {
+		trustedSubnet = value
+	} else if jsonCfg != nil && jsonCfg.TrustedSubnet != nil {
+		trustedSubnet = *jsonCfg.TrustedSubnet
+	}
+	if trustedSubnet != "" {
+		_, cfg.TrustedSubnet, err = net.ParseCIDR(trustedSubnet)
+		if err != nil {
+			return nil, fmt.Errorf("parsing TRUSTED_SUBNET error: %w", err)
+		}
 	}
 
 	return &cfg, nil

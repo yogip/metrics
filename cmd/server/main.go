@@ -17,6 +17,7 @@ import (
 
 	"metrics/internal/core/config"
 	"metrics/internal/core/service"
+	"metrics/internal/infra/api/grpc"
 	"metrics/internal/infra/api/rest"
 	"metrics/internal/infra/store"
 	"metrics/internal/logger"
@@ -29,9 +30,19 @@ var (
 	buildCommit  string = "N/A"
 )
 
-func main() {
-	ctx := context.Background()
+type RunBackend interface {
+	Run(string) error               // Run HTTP or GRPC backend
+	Shutdown(context.Context) error // Shutdown backend
+}
 
+type runner struct {
+	app   RunBackend
+	cfg   *config.Config
+	wg    *sync.WaitGroup
+	store store.Store
+}
+
+func newRunner(ctx context.Context) (*runner, error) {
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -54,23 +65,15 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	if err := run(ctx, &wg, cfg); err != nil {
-		logger.Log.Fatal("Running server Error", zap.String("error", err.Error()))
-	}
-	wg.Wait() // wait for all goroutines to finish
-	logger.Log.Info("Server exiting")
-}
 
-func run(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config) error {
 	store, err := store.NewStore(
 		ctx,
-		wg,
+		&wg,
 		&cfg.Storage,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to initialize a store: %w", err)
+		return nil, fmt.Errorf("failed to initialize a store: %w", err)
 	}
-	defer store.Close()
 
 	metricService := service.NewMetricService(store)
 	systemService := service.NewSystemService(store)
@@ -78,19 +81,52 @@ func run(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config) error {
 
 	privateKey, err := service.NewPrivateKey(cfg.CryptoKey)
 	if err != nil {
-		return fmt.Errorf("failed to initialize private key: %w", err)
+		return nil, fmt.Errorf("failed to initialize private key: %w", err)
 	}
-	api := rest.NewAPI(cfg, metricService, systemService, privateKey)
 
-	// https://github.com/gin-gonic/gin/blob/master/docs/doc.md#manually
+	r := runner{
+		cfg:   cfg,
+		wg:    &wg,
+		store: store,
+	}
+
+	switch cfg.Server.BackendType {
+	case config.HTTPBackType:
+		r.app = rest.NewAPI(cfg, metricService, systemService, privateKey)
+	case config.GRPCBackType:
+		r.app = grpc.NewMetricsServer(cfg, metricService, systemService, privateKey)
+	default:
+		return nil, fmt.Errorf("unknown backend type: %s", cfg.Server.BackendType)
+	}
+
+	return &r, nil
+}
+
+// Run HTTP or GRPC backend.
+func (r *runner) RunBackend() {
+	err := r.app.Run(r.cfg.Server.Address)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Log.Info("Runing server error", zap.Error(err))
+	}
+}
+
+func (r *runner) Shutdown(ctx context.Context) error {
+	if r.store != nil {
+		r.store.Close()
+	}
+	if err := r.app.Shutdown(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Run backend with gracefull shutdown.
+func (r *runner) Run(ctx context.Context) error {
 	// Initializing the server in a goroutine so that
 	// it won't block the graceful shutdown handling below
-	go func() {
-		if err := api.Run(cfg.Server.Address); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Log.Info("Runing server error", zap.Error(err))
-		}
-	}()
+	go r.RunBackend()
 
+	// Gracefully shutdown logic...(https://github.com/gin-gonic/gin/blob/master/docs/doc.md#manually)
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.
 	quit := make(chan os.Signal, 1)
@@ -106,9 +142,25 @@ func run(ctx context.Context, wg *sync.WaitGroup, cfg *config.Config) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	if err := api.Shutdown(ctx); err != nil {
+	err := r.Shutdown(ctx)
+	if err != nil {
 		return err
 	}
 
+	r.wg.Wait() // wait for all goroutines to finish
 	return nil
+}
+
+func main() {
+	ctx := context.Background()
+
+	r, err := newRunner(ctx)
+	if err != nil {
+		logger.Log.Fatal("Running server Error", zap.String("error", err.Error()))
+	}
+
+	if err := r.Run(ctx); err != nil {
+		logger.Log.Fatal("Running server Error", zap.String("error", err.Error()))
+	}
+	logger.Log.Info("Server exiting")
 }

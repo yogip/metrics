@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"net/http/httptest"
 	"testing"
 
@@ -108,10 +109,11 @@ func TestSendMetric(t *testing.T) {
 	})
 	testSrv := httptest.NewServer(srv)
 
-	client := NewClient(testSrv.URL, "", nil)
+	client := NewHTTPClient(testSrv.URL, "", nil)
 
 	// Call the function being tested
-	err := client.SendMetric(expectedMetrics)
+	ctx := context.Background()
+	err := client.SendMetrics(ctx, expectedMetrics)
 
 	// Verify the result
 	require.NoError(t, err)
