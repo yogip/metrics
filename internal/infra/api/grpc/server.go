@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"net"
+	"strings"
 
 	"metrics/internal/core/config"
 	"metrics/internal/core/model"
@@ -15,6 +16,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
@@ -29,6 +31,30 @@ type MetricsServer struct {
 	srv *grpc.Server
 }
 
+// subnetInterceptor create Interceptor to checks client's subnet.
+func subnetInterceptor(subnet *net.IPNet) func(context.Context, interface{}, *grpc.UnaryServerInfo, grpc.UnaryHandler) (interface{}, error) {
+	return func(
+		ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+	) (interface{}, error) {
+		p, ok := peer.FromContext(ctx)
+		if !ok {
+			return nil, status.Error(codes.PermissionDenied, "Failed to get peer from context")
+		}
+
+		ipPort := strings.Split(p.Addr.String(), ":")
+		ipStr := ipPort[0]
+		clientIP := net.ParseIP(ipStr)
+		logger.Log.Debug(fmt.Sprintf("Got request from Client with IP %s", clientIP))
+
+		if clientIP == nil || !subnet.Contains(clientIP) {
+			logger.Log.Warn(fmt.Sprintf("Client IP %s is not allowed", clientIP))
+			return nil, status.Error(codes.PermissionDenied, "Access denied")
+		}
+
+		return handler(ctx, req)
+	}
+}
+
 func NewMetricsServer(
 	cfg *config.Config,
 	metricService *service.MetricService,
@@ -36,6 +62,10 @@ func NewMetricsServer(
 	privateKey *rsa.PrivateKey,
 ) *MetricsServer {
 	s := grpc.NewServer()
+	if cfg.TrustedSubnet != nil {
+		s = grpc.NewServer(grpc.UnaryInterceptor(subnetInterceptor(cfg.TrustedSubnet)))
+	}
+
 	m := MetricsServer{
 		cfg:           cfg,
 		metricService: metricService,

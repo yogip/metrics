@@ -16,7 +16,7 @@ server:
 	go run $(LDFLAGS) cmd/server/main.go -l debug -crypto-key private.pem -d "host=localhost port=45432 user=username password=password dbname=metrics sslmode=disable" -k SomeKey
 
 grpc-server:
-	go run $(LDFLAGS) cmd/server/main.go -b grpc -l debug -d "host=localhost port=45432 user=username password=password dbname=metrics sslmode=disable"
+	go run $(LDFLAGS) cmd/server/main.go -b grpc -t 127.0.0.1/24 -l debug -d "host=localhost port=45432 user=username password=password dbname=metrics sslmode=disable"
 
 
 agent:
