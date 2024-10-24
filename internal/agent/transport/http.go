@@ -3,6 +3,7 @@ package transport
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/hmac"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -27,7 +28,7 @@ type HTTPClient struct {
 	pubKey         *rsa.PublicKey
 }
 
-func NewClient(serverHost string, signHashKey string, pubKey *rsa.PublicKey) *HTTPClient {
+func NewHTTPClient(serverHost string, signHashKey string, pubKey *rsa.PublicKey) *HTTPClient {
 	return &HTTPClient{
 		serverHost:     serverHost,
 		signHashKey:    signHashKey,
@@ -35,6 +36,10 @@ func NewClient(serverHost string, signHashKey string, pubKey *rsa.PublicKey) *HT
 		metricEndpoint: "/updates",
 		client:         &http.Client{},
 	}
+}
+
+func (c *HTTPClient) Close() {
+	logger.Log.Info("HTTP Client closed")
 }
 
 func (c *HTTPClient) compress(data []byte) ([]byte, error) {
@@ -66,7 +71,7 @@ func (c *HTTPClient) sign(data *[]byte) string {
 }
 
 // HTTTP Client to sent metrics to MetricEndpoint
-func (c *HTTPClient) SendMetric(data []model.MetricsV2) error {
+func (c *HTTPClient) SendMetrics(ctx context.Context, data []model.MetricsV2) error {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("error marshalling request body: %w", err)
@@ -83,7 +88,7 @@ func (c *HTTPClient) SendMetric(data []model.MetricsV2) error {
 	}
 
 	url := c.serverHost + c.metricEndpoint
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("request creation error: %w", err)
 	}

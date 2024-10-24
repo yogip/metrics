@@ -57,6 +57,9 @@ func NewAPI(
 	router := gin.Default()
 	router.Use(ZapLogger(logger.Log))
 	router.Use(gin.Recovery())
+	if cfg.TrustedSubnet != nil {
+		router.Use(middlewares.CheckSubnet(cfg.TrustedSubnet))
+	}
 	if privateKey != nil {
 		router.Use(middlewares.DecryptReqBody(privateKey))
 	}

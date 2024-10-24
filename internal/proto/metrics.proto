@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package proto;
+
+option go_packagego_package = "./proto/proto";
+
+enum MetricType {
+  UNKNOWN = 0;
+  COUNTER = 1;
+  GAUGE = 2;
+}
+
+message Metric {
+  string name = 1; // название метрики
+  MetricType type = 2;
+  double value = 3;    // значение gauge
+  sint64 increment = 4; // значение counter
+}
+
+
+message BatchUpdateRequest {
+  repeated Metric metric = 1;
+}
+
+message BatchUpdateResponse {
+  repeated Metric metric = 1;
+}
+
+message GetRequest {
+  string name = 1;
+  MetricType type = 2;
+}
+
+message GetResponse {
+  Metric metric = 1;
+}
+
+service Metrics {
+  rpc GetMetric(GetRequest) returns (GetResponse);
+  rpc BatchUpdateMetric(BatchUpdateRequest) returns (BatchUpdateResponse);  
+}

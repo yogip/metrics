@@ -11,24 +11,33 @@ import (
 	"github.com/pkg/errors"
 )
 
+type TransportType string
+
+const (
+	HTTPTransportType TransportType = "http"
+	GRPCTransportType TransportType = "grpc"
+)
+
 type AgentConfig struct {
-	ServerAddresPort string `env:"ADDRESS" envDefault:"localhost:8080"`
-	LogLevel         string `env:"LOG_LEVEL" envDefault:"info"`
-	HashKey          string `env:"KEY"`
-	CryptoKey        string `env:"CRYPTO_KEY"`
-	ReportInterval   int64  `env:"REPORT_INTERVAL" envDefault:"10"`
-	PollInterval     int64  `env:"POLL_INTERVAL" envDefault:"2"`
-	RateLimit        int    `env:"RATE_LIMIT" envDefault:"3"`
+	ServerAddresPort string        `env:"ADDRESS" envDefault:"localhost:8080"`
+	TransportType    TransportType `env:"TRANSPORT_TYPE" envDefault:"http"`
+	LogLevel         string        `env:"LOG_LEVEL" envDefault:"info"`
+	HashKey          string        `env:"KEY"`
+	CryptoKey        string        `env:"CRYPTO_KEY"`
+	ReportInterval   int64         `env:"REPORT_INTERVAL" envDefault:"10"`
+	PollInterval     int64         `env:"POLL_INTERVAL" envDefault:"2"`
+	RateLimit        int           `env:"RATE_LIMIT" envDefault:"3"`
 }
 
 type JSONConfig struct {
-	ServerAddresPort *string `json:"address,omitempty"`
-	LogLevel         *string `json:"log_level,omitempty"`
-	HashKey          *string `json:"key,omitempty"`
-	CryptoKey        *string `json:"crypto_key"`
-	ReportInterval   *int64  `json:"report_interval"`
-	PollInterval     *int64  `json:"poll_interval"`
-	RateLimit        *int    `json:"rate_limit"`
+	TransportType    *TransportType `json:"transport_type,omitempty"`
+	ServerAddresPort *string        `json:"address,omitempty"`
+	LogLevel         *string        `json:"log_level,omitempty"`
+	HashKey          *string        `json:"key,omitempty"`
+	CryptoKey        *string        `json:"crypto_key"`
+	ReportInterval   *int64         `json:"report_interval"`
+	PollInterval     *int64         `json:"poll_interval"`
+	RateLimit        *int           `json:"rate_limit"`
 }
 
 func loadJSONConfig(path string) (cfg *JSONConfig, err error) {
@@ -49,6 +58,7 @@ func NewAgentConfig() (*AgentConfig, error) {
 	// Read commant args to serparate variables
 	var jsonCfgPath, jsonCfgPathFull string
 	var flagRunAddr string
+	var flagTransportType string
 	var flagLogLevel string
 	var flagHashKey string
 	var flagCryptoKey string
@@ -57,6 +67,7 @@ func NewAgentConfig() (*AgentConfig, error) {
 	var flagRateLimit int
 
 	flag.StringVar(&flagRunAddr, "a", "localhost:8080", "server addres and port to send metrics")
+	flag.StringVar(&flagTransportType, "t", string(HTTPTransportType), "Transport type: http, grpc")
 	flag.Int64Var(&flagReportInterval, "r", 10, "sent metric to server every given interval")
 	flag.Int64Var(&flagPollInterval, "p", 2, "gather metric every given interval")
 	flag.StringVar(&flagLogLevel, "v", "info", "Log levle: debug, info, warn, error, panic, fatal")
@@ -85,13 +96,22 @@ func NewAgentConfig() (*AgentConfig, error) {
 	}
 
 	// Read Env variables and override config values
+	// TRANSPORT_TYPE
+	if _, ok := os.LookupEnv("TRANSPORT_TYPE"); !ok && flagTransportType != "" {
+		cfg.TransportType = TransportType(flagTransportType)
+	} else if jsonCfg != nil && jsonCfg.TransportType != nil {
+		cfg.TransportType = *jsonCfg.TransportType
+	}
+
 	// ADDRESS
 	if _, ok := os.LookupEnv("ADDRESS"); !ok && flagRunAddr != "" {
 		cfg.ServerAddresPort = flagRunAddr
 	} else if jsonCfg != nil && jsonCfg.ServerAddresPort != nil {
 		cfg.ServerAddresPort = *jsonCfg.ServerAddresPort
 	}
-	if !strings.HasPrefix(cfg.ServerAddresPort, "http://") && !strings.HasPrefix(cfg.ServerAddresPort, "https://") {
+	if cfg.TransportType == HTTPTransportType &&
+		!strings.HasPrefix(cfg.ServerAddresPort, "http://") &&
+		!strings.HasPrefix(cfg.ServerAddresPort, "https://") {
 		cfg.ServerAddresPort = "http://" + cfg.ServerAddresPort
 	}
 

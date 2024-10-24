@@ -117,6 +117,7 @@ func TestRun(t *testing.T) {
 		&wg,
 		&config.AgentConfig{
 			ServerAddresPort: testSrv.URL,
+			TransportType:    config.HTTPTransportType,
 			ReportInterval:   2,
 			PollInterval:     1,
 			RateLimit:        1,
